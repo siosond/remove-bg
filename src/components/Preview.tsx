@@ -3,7 +3,6 @@ import { Button } from '@heroui/react';
 import * as Slider from 'react-compare-slider/components';
 import { useReactCompareSlider } from 'react-compare-slider/hooks';
 import Background from './Backgound';
-import { m } from '../paraglide/messages.js';
 import inference, {
   createCanvas,
   canvasToBlob,
@@ -262,7 +261,7 @@ const Preview: React.FC<PreviewComponentProps> = ({
               size='lg'
               onPress={downloadHandledImage}
             >
-              {m.download()}
+              download
             </Button>
             <Button
               className='w-64'
@@ -270,14 +269,14 @@ const Preview: React.FC<PreviewComponentProps> = ({
               size='lg'
               onPress={() => onClick('delete')}
             >
-              {m.delete_result()}
+              delete
             </Button>
           </div>
         </div>
 
         {showMask && (
           <div className='flex absolute w-full h-full rounded-xl bg-sky-600/80 text-5xl text-yellow-300 justify-center items-center'>
-            {m.processing_image()}
+            Processing the image...
           </div>
         )}
       </div>

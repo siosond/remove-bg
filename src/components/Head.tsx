@@ -2,20 +2,9 @@ import React, { useState } from 'react';
 import logo from '../assets/img/logo.svg';
 import github from '../assets/img/github.svg';
 import githubPrimary from '../assets/img/github_primary.svg';
-import { getLocale, setLocale } from '../paraglide/runtime';
-import type { Language } from '../App';
 
-interface HeadComponentProps {
-  onLanguageChange: (newValue: Language) => void;
-}
-
-const Head: React.FC<HeadComponentProps> = ({ onLanguageChange }) => {
+const Head: React.FC = () => {
   const [isHovered, setIsHovered] = useState(false);
-
-  const changeLanguage = (tag: Language) => {
-    setLocale(tag, { reload: false });
-    onLanguageChange(tag);
-  };
 
   return (
     <nav
@@ -33,12 +22,6 @@ const Head: React.FC<HeadComponentProps> = ({ onLanguageChange }) => {
         </div>
       </div>
       <ul className='flex justify-around'>
-        <li
-          className='cursor-pointer px-2 hover:text-accent hover:font-bold'
-          onClick={() => changeLanguage(getLocale() === 'zh' ? 'en' : 'zh')}
-        >
-          {getLocale() === 'zh' ? 'en' : '中文'}
-        </li>
         <li className='px-2 ml-2'>
           <a
             className='inline-block'

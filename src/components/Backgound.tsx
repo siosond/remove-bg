@@ -2,7 +2,6 @@ import React, { useRef, useState } from 'react';
 import { cn } from '@heroui/react';
 import { useThrottleFn } from '@reactuses/core';
 import nobg from '../assets/img/nobg.svg';
-import { m } from '../paraglide/messages.js';
 
 interface BackgroundComponentProps {
   onChangeBg: (backgroundColor: string) => void;
@@ -138,10 +137,10 @@ const Background: React.FC<BackgroundComponentProps> = ({ onChangeBg }) => {
   return (
     <div
       role='group'
-      aria-label={m.change_background()}
+      aria-label='change background'
       className='flex flex-col gap-2'
     >
-      <span className='text-sm'>{m.change_background()}</span>
+      <span className='text-sm'>change background</span>
       <div className='flex flex-wrap gap-2'>
         {colorArr.map((item) => (
           <CustomRadio

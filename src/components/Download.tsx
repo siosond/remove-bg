@@ -3,7 +3,6 @@ import { Modal, useOverlayState } from '@heroui/react';
 import { downloadFile } from '../assets/script/utils';
 import { getModel, setModel } from '../assets/script/model';
 import { MODEL_URL } from '../assets/script/config';
-import { m } from '../paraglide/messages.js';
 
 const Download: React.FC = () => {
   const state = useOverlayState();
@@ -47,15 +46,20 @@ const Download: React.FC = () => {
         <Modal.Container size='lg'>
           <Modal.Dialog>
             <Modal.Header>
-              <Modal.Heading>{m.notes()}</Modal.Heading>
+              <Modal.Heading>Notes</Modal.Heading>
             </Modal.Header>
             <Modal.Body>
               <div className='pb-4'>
                 {!downloadFailed && (
-                  <div className='pb-2'>{m.download_model_message()}</div>
+                  <div className='pb-2'>
+                    Downloading a model file of approximately 5MB. Please be
+                    patient.
+                  </div>
                 )}
                 {downloadFailed && (
-                  <div className='text-red-600 pb-2'>{m.download_failed()}</div>
+                  <div className='text-red-600 pb-2'>
+                    Download failed, please refresh and try again.
+                  </div>
                 )}
                 <progress max='100' value={progress}></progress>
               </div>

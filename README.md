@@ -1,7 +1,5 @@
 # <div align="center"><img src="src/assets/img/remove-bg_logo.png" width=300/></div>
 
-### <div align="center"><b>English | <a href="README_CN.md">简体中文</a></b></div>
-
 <div align="center">
 
 [![download](https://img.shields.io/github/downloads/reamd/remove-bg/total.svg)](https://github.com/reamd/remove-bg/releases)

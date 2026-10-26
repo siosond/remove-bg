@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '@heroui/react';
 import corner from '../assets/img/corner.svg';
-import { m } from '../paraglide/messages.js';
 
 interface UploadComponentProps {
   onFileChange: (dataUrl: string, imgName: string) => void;
@@ -92,7 +91,7 @@ const DragDropUpload: React.FC<UploadComponentProps> = ({ onFileChange }) => {
           transform: 'translateX(-50%)',
         }}
       >
-        <div>{m.drop_an_image()}</div>
+        <div>drop an image</div>
         <input ref={inputRef} type='file' onChange={handleFileChange} hidden />
         <Button
           className='mt-6'
@@ -100,10 +99,10 @@ const DragDropUpload: React.FC<UploadComponentProps> = ({ onFileChange }) => {
           size='lg'
           onPress={() => inputRef.current && inputRef.current.click()}
         >
-          {m.upload_image()}
+          Upload Image
         </Button>
         <div className='pt-20 text-base text-gray-600'>
-          {m.try_one()}
+          No image? Try one of these
           <ul className='pt-2 flex justify-center'>
             {exampleImages.map((item) => (
               <li
@@ -135,7 +134,7 @@ const DragDropUpload: React.FC<UploadComponentProps> = ({ onFileChange }) => {
               transform: 'translateX(-50%)',
             }}
           >
-            {m.drop_anywhere()}
+            Drop image anywhere
           </h1>
         </div>
       )}
