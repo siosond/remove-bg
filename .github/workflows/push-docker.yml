@@ -18,11 +18,11 @@ jobs:
       - name: Set up node
         uses: actions/setup-node@v4
         with:
-          node-version: '18.x'
+          node-version: '24.x'
 
       - name: Run Npm Command
         run: |
-          npm install
+          npm ci
           npm run build
 
       - name: Set up Docker Buildx

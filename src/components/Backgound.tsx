@@ -1,8 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { RadioGroup, cn } from '@nextui-org/react';
+import { cn } from '@heroui/react';
 import { useThrottleFn } from '@reactuses/core';
 import nobg from '../assets/img/nobg.svg';
-import * as m from '../paraglide/messages';
+import { m } from '../paraglide/messages.js';
 
 interface BackgroundComponentProps {
   onChangeBg: (backgroundColor: string) => void;
@@ -136,16 +136,23 @@ const Background: React.FC<BackgroundComponentProps> = ({ onChangeBg }) => {
     }
   };
   return (
-    <RadioGroup orientation='horizontal' label={m.change_background()}>
-      {colorArr.map((item) => (
-        <CustomRadio
-          key={item}
-          value={item}
-          onChange={handleChangeColor}
-          checkedColor={checkedColor}
-        />
-      ))}
-    </RadioGroup>
+    <div
+      role='group'
+      aria-label={m.change_background()}
+      className='flex flex-col gap-2'
+    >
+      <span className='text-sm'>{m.change_background()}</span>
+      <div className='flex flex-wrap gap-2'>
+        {colorArr.map((item) => (
+          <CustomRadio
+            key={item}
+            value={item}
+            onChange={handleChangeColor}
+            checkedColor={checkedColor}
+          />
+        ))}
+      </div>
+    </div>
   );
 };
 

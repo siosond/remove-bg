@@ -32,7 +32,7 @@ git clone https://github.com/daxmeng/remove-bg.git
 cd remove-bg
 ```
 
-2. Install dependencies
+2. Install dependencies (Node.js >= 22.22.1)
 
 ```bash
 npm install
@@ -41,7 +41,7 @@ npm install
 3. Start web-application
 
 ```bash
-npm run start
+npm run dev
 ```
 
 ### Docker

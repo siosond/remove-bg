@@ -1,3 +1,4 @@
 node_modules
 build
-public/ort-wasm-simd.jsep.wasm
+src/paraglide
+*.tsbuildinfo

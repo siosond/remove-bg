@@ -1,5 +1,4 @@
-import type ORT from 'onnxruntime-web';
-import { WASM_PATH } from './config';
+import type { Env } from 'onnxruntime-web';
 
 interface DownloadParams {
   url: string;
@@ -9,8 +8,6 @@ interface DownloadParams {
 
 interface IWebCanUse {
   webGpu: boolean;
-  wasm: boolean;
-  simd: boolean;
   threads: boolean;
 }
 
@@ -84,18 +81,6 @@ const checkWebGpu = async () => {
   return !!(await navigator.gpu.requestAdapter());
 };
 
-const checkWasm = () =>
-  typeof WebAssembly === 'object' &&
-  typeof WebAssembly.instantiate === 'function';
-
-const checkSimd = async () =>
-  WebAssembly.validate(
-    new Uint8Array([
-      0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123, 3, 2, 1, 0, 10, 10,
-      1, 8, 0, 65, 0, 253, 15, 253, 98, 11,
-    ])
-  );
-
 const checkThreads = () =>
   (async (e) => {
     try {
@@ -104,8 +89,8 @@ const checkThreads = () =>
           new MessageChannel().port1.postMessage(new SharedArrayBuffer(1)),
         WebAssembly.validate(e)
       );
-    } catch (error) {
-      return !1;
+    } catch {
+      return false;
     }
   })(
     new Uint8Array([
@@ -117,54 +102,20 @@ const checkThreads = () =>
 export const getWebCanUse = async (): Promise<IWebCanUse> => {
   return {
     webGpu: await checkWebGpu(),
-    wasm: checkWasm(),
-    simd: await checkSimd(),
     threads: await checkThreads(),
   };
 };
 
-export const getOnnxruntimeSrc = async () => {
-  const webCanUse = await getWebCanUse();
-  if (webCanUse.webGpu) {
-    return `${WASM_PATH}ort.webgpu.min.js`;
-  }
-  if (webCanUse.wasm) {
-    if (webCanUse.simd || webCanUse.threads) {
-      return `${WASM_PATH}ort.wasm.min.js`;
-    }
-    return `${WASM_PATH}ort.wasm-core.min.js`;
-  }
-  return `${WASM_PATH}ort.min.js`;
-};
-
-export const loadOnnxJS = async () => {
-  const script = document.createElement('script');
-  script.src = await getOnnxruntimeSrc();
-  document.head.appendChild(script);
-};
-
-export const setOrtEnv = (webCanUse: IWebCanUse, env: ORT.Env) => {
-  if (process.env.NODE_ENV === 'development') {
+export const setOrtEnv = (webCanUse: IWebCanUse, env: Env) => {
+  if (import.meta.env.DEV) {
     console.log('ORT DEV MODE:', webCanUse);
     env.debug = true;
     env.logLevel = 'error';
   }
-  const { webGpu, simd, threads } = webCanUse;
-  /* const wasmPaths = {
-    'ort-wasm-simd-threaded.wasm': threads && simd,
-    'ort-wasm-simd.wasm': !threads && simd,
-    'ort-wasm-threaded.wasm': !webGpu && threads && !simd,
-    'ort-wasm.wasm': !webGpu && !threads && !simd,
-  }; */
-  env.wasm.wasmPaths = WASM_PATH;
-  const device = webGpu ? 'gpu' : 'cpu';
-  env.wasm.proxy = true;
-  if (device === 'cpu') {
-    if (threads) {
-      env.wasm.numThreads = navigator.hardwareConcurrency ?? 4;
-    }
-    env.wasm.simd = simd;
-  } else if (device === 'gpu') {
+  const { webGpu, threads } = webCanUse;
+  if (webGpu) {
     env.wasm.numThreads = 1;
+  } else if (threads) {
+    env.wasm.numThreads = navigator.hardwareConcurrency ?? 4;
   }
 };

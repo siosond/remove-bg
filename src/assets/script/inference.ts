@@ -1,12 +1,13 @@
-import ndarray, { NdArray } from 'ndarray';
-import type ORT from 'onnxruntime-web';
+import ndarray from 'ndarray';
+import type { NdArray } from 'ndarray';
+import * as ort from 'onnxruntime-web/webgpu';
 import { getWebCanUse, setOrtEnv } from './utils';
 import { getModel } from './model';
 
 export type CanvasType = OffscreenCanvas | HTMLCanvasElement;
 
 let sessionIsRunning = false;
-let session: ORT.InferenceSession | null = null;
+let session: ort.InferenceSession | null = null;
 
 function getImageData(imageData: ImageData) {
   return ndarray(imageData.data, [imageData.height, imageData.width, 4]);
@@ -112,8 +113,7 @@ function imageToBlob(imageTensor: NdArray<Uint8ClampedArray>, quality = 0.8) {
 
   const canvas = createCanvas(imageData.width, imageData.height) as CanvasType;
   const ctx = canvas.getContext('2d') as
-    | CanvasRenderingContext2D
-    | OffscreenCanvasRenderingContext2D;
+    CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
   ctx.putImageData(imageData, 0, 0);
 
   return canvasToBlob(canvas, {
@@ -173,8 +173,7 @@ export function getCanvasData(imgUrl: string): Promise<ImageData> {
         height
       ) as CanvasType;
       const ctx = canvas.getContext('2d') as
-        | CanvasRenderingContext2D
-        | OffscreenCanvasRenderingContext2D;
+        CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
       ctx.drawImage(img, 0, 0, width, height);
       resolve(ctx.getImageData(0, 0, width, height));
     };
@@ -185,11 +184,9 @@ export function getCanvasData(imgUrl: string): Promise<ImageData> {
 export async function initSession() {
   const webCanUse = await getWebCanUse();
   if (!session) {
-    console.log(3456, window.ort);
     setOrtEnv(webCanUse, ort.env);
     console.time('sessionCreate');
     const modelBuffer = (await getModel()) as ArrayBuffer;
-    session && (session as ORT.InferenceSession).release();
     session = await ort.InferenceSession.create(modelBuffer, {
       executionProviders: [webCanUse.webGpu ? 'webgpu' : 'wasm'],
       // executionProviders: ['wasm'],
@@ -209,7 +206,7 @@ async function inference(imageUrl: string) {
     return;
   }
   sessionIsRunning = true;
-  const ort = await initSession();
+  await initSession();
   console.time('sessionRun');
   const canvasImageData = await getCanvasData(imageUrl);
   const imageData = await getImageData(canvasImageData);
@@ -218,15 +215,15 @@ async function inference(imageUrl: string) {
   const resizeTensor = resizeTensorBilinear(imageData, resolution, resolution);
   const input = tensorHWCtoBCHW(resizeTensor);
   const feeds = {
-    [(session as ORT.InferenceSession).inputNames[0]]: new ort.Tensor(
+    [(session as ort.InferenceSession).inputNames[0]]: new ort.Tensor(
       'float32',
       input.data,
       input.shape // [1, 3, 320, 320]
     ),
   };
-  const output = await (session as ORT.InferenceSession).run(feeds);
+  const output = await (session as ort.InferenceSession).run(feeds);
   sessionIsRunning = false;
-  const outputImage = output[(session as ORT.InferenceSession).outputNames[0]];
+  const outputImage = output[(session as ort.InferenceSession).outputNames[0]];
 
   // outputImage [1, 1, 320, 320]
   const outputMask = normMask(outputImage.data as Float32Array);

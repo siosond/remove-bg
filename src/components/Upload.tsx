@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Button } from '@nextui-org/react';
+import { Button } from '@heroui/react';
 import corner from '../assets/img/corner.svg';
-import * as m from '../paraglide/messages';
+import { m } from '../paraglide/messages.js';
 
 interface UploadComponentProps {
   onFileChange: (dataUrl: string, imgName: string) => void;
@@ -96,9 +96,9 @@ const DragDropUpload: React.FC<UploadComponentProps> = ({ onFileChange }) => {
         <input ref={inputRef} type='file' onChange={handleFileChange} hidden />
         <Button
           className='mt-6'
-          color='primary'
+          variant='primary'
           size='lg'
-          onClick={() => inputRef.current && inputRef.current.click()}
+          onPress={() => inputRef.current && inputRef.current.click()}
         >
           {m.upload_image()}
         </Button>

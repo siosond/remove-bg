@@ -1,17 +1,17 @@
 import { useState } from 'react';
-import { NextUIProvider } from '@nextui-org/react';
 import './App.css';
 import Head from './components/Head';
 import Upload from './components/Upload';
 import Preview from './components/Preview';
 import Download from './components/Download';
 import { LanguageContext } from './contexts/Context';
-import { sourceLanguageTag } from './paraglide/runtime';
+import { getLocale } from './paraglide/runtime';
+import type { Locale } from './paraglide/runtime';
 
-export type Language = 'zh' | 'en';
+export type Language = Locale;
 
 function App() {
-  const [language, setLanguage] = useState<Language>(sourceLanguageTag);
+  const [language, setLanguage] = useState<Language>(getLocale());
   const [showUpload, setShowUpload] = useState(true);
   const [originImage, setOriginImage] = useState<string>('');
   const [originImageName, setOriginImageName] = useState<string>('');
@@ -31,27 +31,25 @@ function App() {
   };
 
   return (
-    <NextUIProvider>
-      <LanguageContext.Provider value={language}>
-        <div className='App'>
-          {/* header */}
-          <Head onLanguageChange={handleLanguageChange} />
+    <LanguageContext.Provider value={language}>
+      <div className='App'>
+        {/* header */}
+        <Head onLanguageChange={handleLanguageChange} />
 
-          {/* download model */}
-          <Download />
+        {/* download model */}
+        <Download />
 
-          {showUpload && <Upload onFileChange={handleFileChange} />}
+        {showUpload && <Upload onFileChange={handleFileChange} />}
 
-          {!showUpload && (
-            <Preview
-              originUrl={originImage}
-              originName={originImageName}
-              onClick={handlePreviewClick}
-            />
-          )}
-        </div>
-      </LanguageContext.Provider>
-    </NextUIProvider>
+        {!showUpload && (
+          <Preview
+            originUrl={originImage}
+            originName={originImageName}
+            onClick={handlePreviewClick}
+          />
+        )}
+      </div>
+    </LanguageContext.Provider>
   );
 }
 

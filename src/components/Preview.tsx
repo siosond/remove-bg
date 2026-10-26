@@ -1,16 +1,14 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Button } from '@nextui-org/react';
-import {
-  ReactCompareSlider,
-  UseReactCompareSliderRefReturn,
-} from 'react-compare-slider';
+import { Button } from '@heroui/react';
+import * as Slider from 'react-compare-slider/components';
+import { useReactCompareSlider } from 'react-compare-slider/hooks';
 import Background from './Backgound';
-import * as m from '../paraglide/messages';
+import { m } from '../paraglide/messages.js';
 import inference, {
   createCanvas,
   canvasToBlob,
-  CanvasType,
 } from '../assets/script/inference';
+import type { CanvasType } from '../assets/script/inference';
 
 interface PreviewComponentProps {
   originUrl: string;
@@ -38,8 +36,7 @@ const calcCanvasShape: (w: number, h: number) => [number, number] = (w, h) => {
 const downloadImage = (handledImgUrl: string, name: string) => {
   const canvas: CanvasType = createCanvas(originWidth, originHeight);
   const ctx = canvas.getContext('2d') as
-    | CanvasRenderingContext2D
-    | OffscreenCanvasRenderingContext2D;
+    CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
   const img = new Image();
   img.onload = async () => {
     if (
@@ -80,7 +77,9 @@ const Preview: React.FC<PreviewComponentProps> = ({
   onClick,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const reactCompareSliderRef = useRef<UseReactCompareSliderRefReturn>(null);
+  const slider = useReactCompareSlider();
+  const sliderRef = useRef(slider);
+  sliderRef.current = slider;
   const [sliderWidth, setSliderWidth] = useState('60vw');
   const [sliderHeight, setSliderHeight] = useState('60vw');
   const [handledUrl, setHandledUrl] = useState('');
@@ -91,7 +90,7 @@ const Preview: React.FC<PreviewComponentProps> = ({
     await new Promise((resolve) =>
       window.requestAnimationFrame(() => {
         setTimeout(() => {
-          reactCompareSliderRef.current?.setPosition(90);
+          sliderRef.current.setPosition(90);
           resolve(true);
         }, 750);
       })
@@ -99,7 +98,7 @@ const Preview: React.FC<PreviewComponentProps> = ({
     await new Promise((resolve) =>
       window.requestAnimationFrame(() => {
         setTimeout(() => {
-          reactCompareSliderRef.current?.setPosition(10);
+          sliderRef.current.setPosition(10);
           resolve(true);
         }, 750);
       })
@@ -107,7 +106,7 @@ const Preview: React.FC<PreviewComponentProps> = ({
     await new Promise((resolve) =>
       window.requestAnimationFrame(() => {
         setTimeout(() => {
-          reactCompareSliderRef.current?.setPosition(50);
+          sliderRef.current.setPosition(50);
           resolve(true);
         }, 750);
       })
@@ -187,7 +186,7 @@ const Preview: React.FC<PreviewComponentProps> = ({
   };
 
   const handleChangeBg = (backgroundColor: string) => {
-    reactCompareSliderRef.current?.setPosition(0);
+    sliderRef.current.setPosition(0);
     handledImgBgColor = backgroundColor;
     draw(handledUrl, backgroundColor);
   };
@@ -207,41 +206,46 @@ const Preview: React.FC<PreviewComponentProps> = ({
       }}
     >
       <div className='flex m-auto items-center'>
-        <ReactCompareSlider
-          ref={reactCompareSliderRef}
-          itemOne={
-            <img
-              src={originUrl}
-              style={{
-                width: '100%',
-                height: '100%',
-              }}
-            />
-          }
-          itemTwo={
-            <canvas
-              ref={canvasRef}
-              style={{
-                width: '100%',
-                height: '100%',
-                border: '2px solid rgba(69, 69, 69, 0.3)',
-                borderRadius: '6px',
-                backgroundSize: '20px 20px',
-                backgroundPosition: '0 0,0 10px,10px -10px,-10px 0',
-                backgroundColor: 'white',
-                backgroundImage: `linear-gradient(45deg, #ccc 25%, transparent 25%),
+        <Slider.Provider {...slider}>
+          <Slider.Root
+            style={{
+              width: sliderWidth,
+              height: sliderHeight,
+              overflow: 'hidden',
+            }}
+          >
+            <Slider.Item item='itemOne'>
+              <img
+                src={originUrl}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                }}
+              />
+            </Slider.Item>
+            <Slider.Item item='itemTwo'>
+              <canvas
+                ref={canvasRef}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: '2px solid rgba(69, 69, 69, 0.3)',
+                  borderRadius: '6px',
+                  backgroundSize: '20px 20px',
+                  backgroundPosition: '0 0,0 10px,10px -10px,-10px 0',
+                  backgroundColor: 'white',
+                  backgroundImage: `linear-gradient(45deg, #ccc 25%, transparent 25%),
               linear-gradient(-45deg, #ccc 25%, transparent 25%),
               linear-gradient(45deg, transparent 75%, #ccc 75%),
               linear-gradient(-45deg, transparent 75%, #ccc 75%)`,
-              }}
-            />
-          }
-          style={{
-            width: sliderWidth,
-            height: sliderHeight,
-            overflow: 'hidden',
-          }}
-        />
+                }}
+              />
+            </Slider.Item>
+            <Slider.HandleRoot>
+              <Slider.Handle />
+            </Slider.HandleRoot>
+          </Slider.Root>
+        </Slider.Provider>
 
         <div
           className='flex flex-wrap justify-between items-center'
@@ -254,17 +258,17 @@ const Preview: React.FC<PreviewComponentProps> = ({
           <div className='mt-5'>
             <Button
               className='w-64 mb-3'
-              color='primary'
+              variant='primary'
               size='lg'
-              onClick={downloadHandledImage}
+              onPress={downloadHandledImage}
             >
               {m.download()}
             </Button>
             <Button
               className='w-64'
-              color='danger'
+              variant='danger'
               size='lg'
-              onClick={() => onClick('delete')}
+              onPress={() => onClick('delete')}
             >
               {m.delete_result()}
             </Button>
@@ -272,7 +276,7 @@ const Preview: React.FC<PreviewComponentProps> = ({
         </div>
 
         {showMask && (
-          <div className='flex absolute w-full h-full rounded-xl bg-sky-600 text-5xl text-warning-300 bg-opacity-80 justify-center items-center'>
+          <div className='flex absolute w-full h-full rounded-xl bg-sky-600/80 text-5xl text-yellow-300 justify-center items-center'>
             {m.processing_image()}
           </div>
         )}

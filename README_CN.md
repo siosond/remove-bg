@@ -32,7 +32,7 @@ git clone https://github.com/daxmeng/remove-bg.git
 cd remove-bg
 ```
 
-2. 安装依赖
+2. 安装依赖（需要 Node.js >= 22.22.1）
 
 ```bash
 npm install
@@ -41,7 +41,7 @@ npm install
 3. 运行Web应用
 
 ```bash
-npm run start
+npm run dev
 ```
 
 ### Docker模式
