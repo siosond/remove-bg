@@ -14,9 +14,6 @@ export default defineConfig({
       strategy: ['localStorage', 'baseLocale'],
     }),
   ],
-  build: {
-    outDir: 'build',
-  },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/setupTests.ts'],

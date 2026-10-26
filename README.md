@@ -32,7 +32,7 @@ git clone https://github.com/daxmeng/remove-bg.git
 cd remove-bg
 ```
 
-2. Install dependencies (Node.js >= 22.22.1)
+2. Install dependencies (Node.js >= 22.12)
 
 ```bash
 npm install
@@ -42,12 +42,6 @@ npm install
 
 ```bash
 npm run dev
-```
-
-### Docker
-
-```bash
-docker run -d -p 8080:80 --name remove-bg reamd/remove-bg:latest
 ```
 
 ## :star:Contact
