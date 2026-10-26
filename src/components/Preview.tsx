@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from '@heroui/react';
 import * as Slider from 'react-compare-slider/components';
 import { useReactCompareSlider } from 'react-compare-slider/hooks';
@@ -78,14 +78,16 @@ const Preview: React.FC<PreviewComponentProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const slider = useReactCompareSlider();
   const sliderRef = useRef(slider);
-  sliderRef.current = slider;
   const [sliderWidth, setSliderWidth] = useState('60vw');
   const [sliderHeight, setSliderHeight] = useState('60vw');
   const [handledUrl, setHandledUrl] = useState('');
-  const [showMask, setShowMask] = useState(false);
-  let ctx: CanvasRenderingContext2D | null = null;
+  const [showMask, setShowMask] = useState(true);
 
-  const fireTransition = async () => {
+  useEffect(() => {
+    sliderRef.current = slider;
+  });
+
+  const fireTransition = useCallback(async () => {
     await new Promise((resolve) =>
       window.requestAnimationFrame(() => {
         setTimeout(() => {
@@ -110,35 +112,9 @@ const Preview: React.FC<PreviewComponentProps> = ({
         }, 750);
       })
     );
-  };
-
-  useEffect(() => {
-    if (canvasRef.current) {
-      ctx = canvasRef.current.getContext('2d');
-      if (ctx) {
-        // canvasRef.current.width = 0;
-        canvasRef.current.height = 0;
-      }
-    }
   }, []);
 
-  useEffect(() => {
-    setShowMask(true);
-    // origin image
-    draw(originUrl);
-
-    // handle image
-    inference(originUrl).then((res) => {
-      if (!res) return;
-      const blobURL = URL.createObjectURL(res);
-      draw(blobURL);
-      setShowMask(false);
-      setHandledUrl(blobURL);
-      fireTransition();
-    });
-  }, [originUrl]);
-
-  const draw = (dataUrl: string, background = '') => {
+  const draw = useCallback((dataUrl: string, background = '') => {
     const ctx = canvasRef.current?.getContext('2d');
     if (ctx && dataUrl) {
       ctx.clearRect(
@@ -182,7 +158,29 @@ const Preview: React.FC<PreviewComponentProps> = ({
       };
       img.src = dataUrl;
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (canvasRef.current) {
+      // canvasRef.current.width = 0;
+      canvasRef.current.height = 0;
+    }
+  }, []);
+
+  useEffect(() => {
+    // origin image
+    draw(originUrl);
+
+    // handle image
+    inference(originUrl).then((res) => {
+      if (!res) return;
+      const blobURL = URL.createObjectURL(res);
+      draw(blobURL);
+      setShowMask(false);
+      setHandledUrl(blobURL);
+      fireTransition();
+    });
+  }, [originUrl, draw, fireTransition]);
 
   const handleChangeBg = (backgroundColor: string) => {
     sliderRef.current.setPosition(0);

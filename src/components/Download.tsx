@@ -6,6 +6,7 @@ import { MODEL_URL } from '../assets/script/config';
 
 const Download: React.FC = () => {
   const state = useOverlayState();
+  const { open, close } = state;
   const [progress, setProgress] = useState(0);
   const [downloadFailed, setDownloadFailed] = useState(false);
 
@@ -13,7 +14,7 @@ const Download: React.FC = () => {
     async function setModelData() {
       const modelBuffer: ArrayBuffer | null = await getModel();
       if (!modelBuffer) {
-        state.open();
+        open();
         downloadFile({
           url: MODEL_URL,
           progress: (loaded, total) => {
@@ -24,7 +25,7 @@ const Download: React.FC = () => {
             if (flag === true) {
               console.log('download model successfully');
               setModel(data as ArrayBuffer);
-              state.close();
+              close();
             } else {
               // download failed
               setDownloadFailed(true);
@@ -34,7 +35,7 @@ const Download: React.FC = () => {
       }
     }
     setModelData();
-  }, []);
+  }, [open, close]);
 
   return (
     <Modal state={state}>
