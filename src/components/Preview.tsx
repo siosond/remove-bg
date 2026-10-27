@@ -1,8 +1,21 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { Check, Download as DownloadIcon, Loader2, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
 import * as Slider from 'react-compare-slider/components';
 import { useReactCompareSlider } from 'react-compare-slider/hooks';
-import Background from './Backgound';
+import Background from './Background';
 import inference, {
   createCanvas,
   canvasToBlob,
@@ -32,7 +45,11 @@ const calcCanvasShape: (w: number, h: number) => [number, number] = (w, h) => {
   return [canvasWidth, canvasHeight];
 };
 
-const downloadImage = (handledImgUrl: string, name: string) => {
+const downloadImage = (
+  handledImgUrl: string,
+  name: string,
+  onDone?: () => void
+) => {
   const canvas: CanvasType = createCanvas(originWidth, originHeight);
   const ctx = canvas.getContext('2d') as
     CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
@@ -66,6 +83,7 @@ const downloadImage = (handledImgUrl: string, name: string) => {
     setTimeout(() => {
       link.remove();
     }, 100);
+    onDone?.();
   };
   img.src = handledImgUrl;
 };
@@ -78,10 +96,11 @@ const Preview: React.FC<PreviewComponentProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const slider = useReactCompareSlider();
   const sliderRef = useRef(slider);
-  const [sliderWidth, setSliderWidth] = useState('60vw');
-  const [sliderHeight, setSliderHeight] = useState('60vw');
+  const [aspect, setAspect] = useState(1);
   const [handledUrl, setHandledUrl] = useState('');
-  const [showMask, setShowMask] = useState(true);
+  const [status, setStatus] = useState<'processing' | 'done' | 'error'>(
+    'processing'
+  );
 
   useEffect(() => {
     sliderRef.current = slider;
@@ -144,8 +163,7 @@ const Preview: React.FC<PreviewComponentProps> = ({
         if (canvasRef.current) {
           canvasRef.current.width = width;
           canvasRef.current.height = height;
-          setSliderWidth(`${width}px`);
-          setSliderHeight(`${height}px`);
+          if (width && height) setAspect(width / height);
         }
         if (
           background &&
@@ -172,14 +190,22 @@ const Preview: React.FC<PreviewComponentProps> = ({
     draw(originUrl);
 
     // handle image
-    inference(originUrl).then((res) => {
-      if (!res) return;
-      const blobURL = URL.createObjectURL(res);
-      draw(blobURL);
-      setShowMask(false);
-      setHandledUrl(blobURL);
-      fireTransition();
-    });
+    inference(originUrl)
+      .then((res) => {
+        if (!res) return;
+        const blobURL = URL.createObjectURL(res);
+        draw(blobURL);
+        setStatus('done');
+        setHandledUrl(blobURL);
+        fireTransition();
+      })
+      .catch((error) => {
+        console.error(error);
+        setStatus('error');
+        toast.error('Could not process this image', {
+          description: 'Please try a different image.',
+        });
+      });
   }, [originUrl, draw, fireTransition]);
 
   const handleChangeBg = (backgroundColor: string) => {
@@ -189,94 +215,123 @@ const Preview: React.FC<PreviewComponentProps> = ({
   };
 
   const downloadHandledImage = () => {
-    downloadImage(handledUrl, originName);
+    if (!handledUrl) return;
+    downloadImage(handledUrl, originName, () =>
+      toast.success('Image downloaded', {
+        description: `${originName}_rbg.png`,
+      })
+    );
   };
 
   return (
-    <div
-      className='flex py-16'
-      style={{
-        position: 'absolute',
-        left: '50%',
-        top: '50%',
-        transform: 'translate(-50%, -50%)',
-      }}
-    >
-      <div className='flex m-auto items-center'>
-        <Slider.Provider {...slider}>
-          <Slider.Root
+    <div className='grid items-start gap-6 lg:grid-cols-[1fr_20rem]'>
+      <Card>
+        <CardHeader>
+          <CardTitle className='truncate'>{originName}</CardTitle>
+          <CardDescription>
+            Drag the handle to compare the original with the result.
+          </CardDescription>
+          <CardAction>
+            {status === 'processing' && (
+              <Badge variant='secondary'>
+                <Loader2 className='animate-spin' />
+                Processing
+              </Badge>
+            )}
+            {status === 'done' && (
+              <Badge>
+                <Check />
+                Done
+              </Badge>
+            )}
+            {status === 'error' && <Badge variant='destructive'>Failed</Badge>}
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          <div
+            className='relative mx-auto w-full overflow-hidden rounded-lg border'
             style={{
-              width: sliderWidth,
-              height: sliderHeight,
-              overflow: 'hidden',
+              aspectRatio: aspect,
+              maxWidth: `calc(70vh * ${aspect})`,
             }}
           >
-            <Slider.Item item='itemOne'>
-              <img
-                src={originUrl}
+            <Slider.Provider {...slider}>
+              <Slider.Root
                 style={{
                   width: '100%',
                   height: '100%',
+                  overflow: 'hidden',
                 }}
-              />
-            </Slider.Item>
-            <Slider.Item item='itemTwo'>
-              <canvas
-                ref={canvasRef}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  border: '2px solid rgba(69, 69, 69, 0.3)',
-                  borderRadius: '6px',
-                  backgroundSize: '20px 20px',
-                  backgroundPosition: '0 0,0 10px,10px -10px,-10px 0',
-                  backgroundColor: 'white',
-                  backgroundImage: `linear-gradient(45deg, #ccc 25%, transparent 25%),
-              linear-gradient(-45deg, #ccc 25%, transparent 25%),
-              linear-gradient(45deg, transparent 75%, #ccc 75%),
-              linear-gradient(-45deg, transparent 75%, #ccc 75%)`,
-                }}
-              />
-            </Slider.Item>
-            <Slider.HandleRoot>
-              <Slider.Handle />
-            </Slider.HandleRoot>
-          </Slider.Root>
-        </Slider.Provider>
+              >
+                <Slider.Item item='itemOne'>
+                  <img
+                    src={originUrl}
+                    alt='Original'
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                    }}
+                  />
+                </Slider.Item>
+                <Slider.Item item='itemTwo'>
+                  <canvas
+                    ref={canvasRef}
+                    className='checkerboard'
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                    }}
+                  />
+                </Slider.Item>
+                <Slider.HandleRoot>
+                  <Slider.Handle />
+                </Slider.HandleRoot>
+              </Slider.Root>
+            </Slider.Provider>
 
-        <div
-          className='flex flex-wrap justify-between items-center'
-          style={{
-            width: '304px',
-            paddingLeft: '12px',
-          }}
-        >
+            {status === 'processing' && (
+              <div className='absolute inset-0 z-10 flex items-center justify-center'>
+                <Skeleton className='absolute inset-0 rounded-none' />
+                <div className='relative flex items-center gap-2 rounded-md bg-background/90 px-3 py-2 text-sm font-medium shadow-sm'>
+                  <Loader2 className='size-4 animate-spin' />
+                  Removing background...
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Background</CardTitle>
+          <CardDescription>
+            Choose a color to place behind the cutout.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className='flex flex-col gap-6'>
           <Background onChangeBg={handleChangeBg} />
-          <div className='mt-5'>
+          <Separator />
+          <div className='flex flex-col gap-2'>
             <Button
-              className='w-64 mb-3'
               size='lg'
+              disabled={status !== 'done'}
               onClick={downloadHandledImage}
             >
-              download
+              <DownloadIcon />
+              Download
             </Button>
             <Button
-              className='w-64 bg-destructive text-white hover:bg-destructive/90'
               variant='destructive'
               size='lg'
               onClick={() => onClick('delete')}
             >
-              delete
+              <Trash2 />
+              Start over
             </Button>
           </div>
-        </div>
-
-        {showMask && (
-          <div className='flex absolute w-full h-full rounded-xl bg-sky-600/80 text-5xl text-yellow-300 justify-center items-center'>
-            Processing the image...
-          </div>
-        )}
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
