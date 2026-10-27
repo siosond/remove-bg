@@ -202,8 +202,8 @@ const Preview: React.FC<PreviewComponentProps> = ({
       .catch((error) => {
         console.error(error);
         setStatus('error');
-        toast.error('Could not process this image', {
-          description: 'Please try a different image.',
+        toast.error("Couldn't cut this one out", {
+          description: 'Try a different photo.',
         });
       });
   }, [originUrl, draw, fireTransition]);
@@ -217,7 +217,7 @@ const Preview: React.FC<PreviewComponentProps> = ({
   const downloadHandledImage = () => {
     if (!handledUrl) return;
     downloadImage(handledUrl, originName, () =>
-      toast.success('Image downloaded', {
+      toast.success('Saved!', {
         description: `${originName}_rbg.png`,
       })
     );
@@ -229,22 +229,24 @@ const Preview: React.FC<PreviewComponentProps> = ({
         <CardHeader>
           <CardTitle className='truncate'>{originName}</CardTitle>
           <CardDescription>
-            Drag the handle to compare the original with the result.
+            Drag the slider to see before and after.
           </CardDescription>
           <CardAction>
             {status === 'processing' && (
               <Badge variant='secondary'>
                 <Loader2 className='animate-spin' />
-                Processing
+                Working on it
               </Badge>
             )}
             {status === 'done' && (
               <Badge>
                 <Check />
-                Done
+                Ready
               </Badge>
             )}
-            {status === 'error' && <Badge variant='destructive'>Failed</Badge>}
+            {status === 'error' && (
+              <Badge variant='destructive'>{"Didn't work"}</Badge>
+            )}
           </CardAction>
         </CardHeader>
         <CardContent>
@@ -266,7 +268,7 @@ const Preview: React.FC<PreviewComponentProps> = ({
                 <Slider.Item item='itemOne'>
                   <img
                     src={originUrl}
-                    alt='Original'
+                    alt='Original photo'
                     style={{
                       width: '100%',
                       height: '100%',
@@ -294,7 +296,7 @@ const Preview: React.FC<PreviewComponentProps> = ({
                 <Skeleton className='absolute inset-0 rounded-none' />
                 <div className='relative flex items-center gap-2 rounded-md bg-background/90 px-3 py-2 text-sm font-medium shadow-sm'>
                   <Loader2 className='size-4 animate-spin' />
-                  Removing background...
+                  Removing the background…
                 </div>
               </div>
             )}
@@ -306,7 +308,7 @@ const Preview: React.FC<PreviewComponentProps> = ({
         <CardHeader>
           <CardTitle>Background</CardTitle>
           <CardDescription>
-            Choose a color to place behind the cutout.
+            Pick a color to go behind your cutout.
           </CardDescription>
         </CardHeader>
         <CardContent className='flex flex-col gap-6'>

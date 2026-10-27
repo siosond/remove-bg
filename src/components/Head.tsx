@@ -37,7 +37,7 @@ const Head: React.FC = () => {
                   href='https://github.com/reamd/remove-bg'
                   target='_blank'
                   rel='noreferrer'
-                  aria-label='GitHub repository'
+                  aria-label='View on GitHub'
                 >
                   <GithubIcon />
                 </a>

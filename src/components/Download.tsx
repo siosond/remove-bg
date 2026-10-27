@@ -53,14 +53,14 @@ const Download: React.FC = () => {
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle>Preparing the model</DialogTitle>
+          <DialogTitle>Getting things ready</DialogTitle>
           <DialogDescription>
             {downloadFailed ? (
               <span className='text-destructive'>
-                Download failed, please refresh and try again.
+                {"Download didn't finish. Refresh the page to try again."}
               </span>
             ) : (
-              'Downloading a model file of approximately 5MB. Please be patient.'
+              "One-time download of about 5 MB. We'll keep it on your device for next time."
             )}
           </DialogDescription>
         </DialogHeader>

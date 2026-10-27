@@ -34,8 +34,8 @@ const DragDropUpload: React.FC<UploadComponentProps> = ({ onFileChange }) => {
       if (files && files.length > 0) {
         const file = files[0];
         if (!file.type.startsWith('image/')) {
-          toast.error('Unsupported file', {
-            description: 'Please choose an image file (PNG, JPG, WebP...).',
+          toast.error("That's not an image", {
+            description: 'Try a PNG, JPG, or WebP instead.',
           });
           return;
         }
@@ -107,7 +107,7 @@ const DragDropUpload: React.FC<UploadComponentProps> = ({ onFileChange }) => {
         }),
       ]);
     } catch {
-      toast.error('Could not load the example image');
+      toast.error("Couldn't load that example. Give it another go.");
     }
   };
 
@@ -115,9 +115,9 @@ const DragDropUpload: React.FC<UploadComponentProps> = ({ onFileChange }) => {
     <>
       <Card className='mx-auto w-full max-w-xl'>
         <CardHeader className='text-center'>
-          <CardTitle className='text-2xl'>Remove image backgrounds</CardTitle>
+          <CardTitle className='text-2xl'>Cut out any background</CardTitle>
           <CardDescription>
-            Free and private. Your image never leaves your browser.
+            Free, and your photo never leaves your device.
           </CardDescription>
         </CardHeader>
         <CardContent className='flex flex-col gap-6'>
@@ -131,7 +131,7 @@ const DragDropUpload: React.FC<UploadComponentProps> = ({ onFileChange }) => {
               <ImageUp className='size-6' />
             </div>
             <div className='text-sm text-muted-foreground'>
-              Drag and drop an image here, or
+              Drop a photo here, or
             </div>
             <input
               ref={inputRef}
@@ -141,20 +141,20 @@ const DragDropUpload: React.FC<UploadComponentProps> = ({ onFileChange }) => {
               hidden
             />
             <Button size='lg' onClick={() => inputRef.current?.click()}>
-              Upload Image
+              Choose a photo
             </Button>
           </div>
 
           <div className='flex flex-col items-center gap-3'>
             <span className='text-sm text-muted-foreground'>
-              No image? Try one of these
+              Nothing handy? Try one of these
             </span>
             <ul className='flex gap-2'>
               {exampleImages.map((item) => (
                 <li key={item.src}>
                   <button
                     type='button'
-                    aria-label={`Use example image: ${item.label}`}
+                    aria-label={`Try the ${item.label} example`}
                     className='block overflow-hidden rounded-lg ring-1 ring-border transition hover:ring-2 hover:ring-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none'
                     onClick={() => handleExample(item.src)}
                   >
@@ -175,7 +175,7 @@ const DragDropUpload: React.FC<UploadComponentProps> = ({ onFileChange }) => {
       {dragging && (
         <div className='pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-6 backdrop-blur-sm'>
           <div className='flex size-full items-center justify-center rounded-2xl border-2 border-dashed border-primary'>
-            <h2 className='text-2xl font-semibold'>Drop image anywhere</h2>
+            <h2 className='text-2xl font-semibold'>Drop it anywhere</h2>
           </div>
         </div>
       )}
