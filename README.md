@@ -74,11 +74,11 @@ Then open the local URL printed in the terminal.
 | Build & tools | Vite 8, Vitest, Testing Library (jsdom), Biome                                                                               |
 | ML runtime    | ONNX Runtime Web (`onnxruntime-web/webgpu`), ndarray                                                                         |
 | Storage       | localforage (IndexedDB) for the cached model                                                                                 |
-| Model         | [U²-Net](https://github.com/xuebinqin/U-2-Net) lightweight variant (`u2netp.onnx`, ~5 MB)                                    |
+| Model         | [U²-Net](https://github.com/xuebinqin/U-2-Net) lightweight variant (`u2netp.onnx`, ~5 MB, Apache-2.0), shipped with the app  |
 
 ## How it works
 
-1. **Model download.** On first load, `Download.tsx` fetches `u2netp.onnx` (URL in `src/assets/script/config.ts`) with a progress dialog and stores it in IndexedDB through `model.ts`. Later visits read it straight from the cache.
+1. **Model download.** On first load, `Download.tsx` fetches `u2netp.onnx` from the app's own `public/models/` folder (URL in `src/assets/script/config.ts`) with a progress dialog and stores it in IndexedDB through `model.ts`. Later visits read it straight from the cache.
 2. **Runtime setup.** `utils.ts` checks for WebGPU and WebAssembly threads, and `inference.ts` creates the ONNX Runtime session on WebGPU when available, otherwise on WASM.
 3. **Inference.** The image is resized to 320 × 320 with bilinear interpolation, normalized, converted from HWC to BCHW layout and passed to the model. The output saliency mask is min-max normalized.
 4. **Compositing.** The mask is scaled back to the original size and written into the image's alpha channel. `Preview.tsx` draws the result over the chosen background and exports it as a PNG.
@@ -89,17 +89,20 @@ Then open the local URL printed in the terminal.
 src/assets/script/      Model storage, inference pipeline, runtime utilities, config
 src/components/         App components (upload, preview, background picker, ...)
 src/components/ui/      shadcn/ui primitives
+public/models/          Bundled U²-Net model with its license and notice
 ```
 
 ## License
 
 Released under the [GNU GPL v3.0](LICENSE).
 
+The bundled model and other third-party material keep their own licenses. See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
 ## Acknowledgements
 
 This project is a fork of [daxmeng/remove-bg](https://github.com/daxmeng/remove-bg).
 
-Background removal is powered by [U²-Net](https://github.com/xuebinqin/U-2-Net) by Xuebin Qin et al.
+Background removal is powered by [U²-Net](https://github.com/xuebinqin/U-2-Net) by Xuebin Qin et al., released under the Apache License 2.0. The bundled `u2netp.onnx` is the export from [rembg](https://github.com/danielgatis/rembg)'s release assets; its license text and origin are in [`public/models/`](public/models/NOTICE).
 
 <details>
 <summary>Citation (BibTeX)</summary>
