@@ -38,8 +38,8 @@ const Head: React.FC = () => {
             }}
           />
           <span>
-            <span className='text-primary'>REMOVE</span>
-            <span className='text-muted-foreground'>-BG</span>
+            <span className='text-primary'>remove</span>
+            <span className='text-muted-foreground'>-bg</span>
           </span>
         </div>
         <div className='flex items-center gap-1'>

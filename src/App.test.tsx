@@ -41,7 +41,7 @@ const renderApp = () =>
 
 test('renders the header and the upload screen', () => {
   renderApp();
-  expect(screen.getByText('REMOVE')).toBeInTheDocument();
+  expect(screen.getByText('remove')).toBeInTheDocument();
   expect(
     screen.getByRole('button', { name: 'Choose a photo' })
   ).toBeInTheDocument();
