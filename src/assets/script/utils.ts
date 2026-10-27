@@ -1,5 +1,7 @@
 import type { Env } from "onnxruntime-web";
 
+import { ORT_WASM_BASE_URL } from "./config";
+
 interface DownloadParams {
 	url: string;
 	/** Size in bytes to assume when the response doesn't report one. */
@@ -121,6 +123,7 @@ export const setOrtEnv = (webCanUse: IWebCanUse, env: Env) => {
 		env.debug = true;
 		env.logLevel = "error";
 	}
+	env.wasm.wasmPaths = ORT_WASM_BASE_URL;
 	const { webGpu, threads } = webCanUse;
 	if (webGpu) {
 		env.wasm.numThreads = 1;

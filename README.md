@@ -67,7 +67,7 @@ Then open the local URL printed in the terminal.
 ## How it works
 
 1. **Model download.** The first time an image is processed, `ensureModel` in `model.ts` fetches `u2netp.onnx` from the app's own `public/models/` folder (URL in `src/assets/script/config.ts`), `Download.tsx` shows a progress dialog, and the model is stored in IndexedDB. Later visits read it straight from the cache, and nothing is downloaded until an image is chosen.
-2. **Runtime setup.** `utils.ts` checks for WebGPU and WebAssembly threads, and `inference.ts` creates the ONNX Runtime session on WebGPU when available, otherwise on WASM.
+2. **Runtime setup.** `utils.ts` checks for WebGPU and WebAssembly threads, and `inference.ts` creates the ONNX Runtime session on WebGPU when available, otherwise on WASM. The 27 MiB ONNX Runtime wasm exceeds the 25 MiB per-asset limit of Cloudflare Workers, so it is not bundled; it is loaded from jsDelivr at the installed `onnxruntime-web` version (`ORT_WASM_BASE_URL` in `config.ts`).
 3. **Inference.** The image is resized to 320 × 320 with bilinear interpolation, normalized, converted from HWC to BCHW layout and passed to the model. The output saliency mask is min-max normalized.
 4. **Mask adjustment.** The mask is scaled back to the original size and shaped by the removal, cleanup, edge size, brush and edge softness settings in `mask.ts`. The live preview works on a reduced-size copy; the export applies the same settings to the full-size image.
 5. **Compositing.** `composite.ts` draws the result over the chosen background for both the preview and the downloaded PNG.
