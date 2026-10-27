@@ -16,13 +16,6 @@ interface UploadComponentProps {
 	onFileChange: (dataUrl: string, imgName: string) => void;
 }
 
-const exampleImages = [
-	{ src: "/example/girl.jpg", label: "Portrait" },
-	{ src: "/example/car.jpg", label: "Car" },
-	{ src: "/example/horse.jpg", label: "Horse" },
-	{ src: "/example/plant.jpg", label: "Plant" },
-];
-
 const hasFiles = (event: DragEvent) =>
 	Array.from(event.dataTransfer?.types ?? []).includes("Files");
 
@@ -99,19 +92,6 @@ const DragDropUpload: React.FC<UploadComponentProps> = ({ onFileChange }) => {
 		event.target.value = "";
 	};
 
-	const handleExample = async (uri: string) => {
-		try {
-			const imgBlob = await fetch(uri).then((r) => r.blob());
-			handleSelectedImage([
-				new File([imgBlob], uri.replace("/example/", ""), {
-					type: "image/jpeg",
-				}),
-			]);
-		} catch {
-			toast.error("Couldn't load that example. Give it another go.");
-		}
-	};
-
 	return (
 		<>
 			<Card className="mx-auto w-full max-w-xl">
@@ -144,30 +124,6 @@ const DragDropUpload: React.FC<UploadComponentProps> = ({ onFileChange }) => {
 						<Button size="lg" onClick={() => inputRef.current?.click()}>
 							Choose a photo
 						</Button>
-					</div>
-
-					<div className="flex flex-col items-center gap-3">
-						<span className="text-muted-foreground text-sm">
-							Nothing handy? Try one of these
-						</span>
-						<ul className="flex gap-2">
-							{exampleImages.map((item) => (
-								<li key={item.src}>
-									<button
-										type="button"
-										aria-label={`Try the ${item.label} example`}
-										className="ring-border hover:ring-primary focus-visible:ring-ring block overflow-hidden rounded-lg ring-1 transition hover:ring-2 focus-visible:ring-2 focus-visible:outline-none"
-										onClick={() => handleExample(item.src)}
-									>
-										<img
-											className="size-16 object-cover"
-											src={item.src}
-											alt=""
-										/>
-									</button>
-								</li>
-							))}
-						</ul>
 					</div>
 				</CardContent>
 			</Card>

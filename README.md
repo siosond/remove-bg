@@ -32,7 +32,7 @@ Powered by WebGPU and WebAssembly. No uploads, no accounts, no cost.
 - **Private by design.** Images are processed on your device and never uploaded.
 - **Fast.** Uses WebGPU when the browser supports it and falls back to multi-threaded WebAssembly.
 - **Light download.** The ~5 MB model is fetched once, then cached in your browser for later visits.
-- **Easy input.** Drag and drop anywhere on the page, pick a file, or try one of the built-in example photos.
+- **Easy input.** Drag and drop anywhere on the page, or pick a file.
 - **Compare and customize.** Slide between the original and the result, then place the cutout on a transparent, solid or custom background color.
 - **Export.** Download the result as a PNG.
 - **Light and dark themes.**
@@ -86,7 +86,6 @@ Then open the local URL printed in the terminal.
 ### Project layout
 
 ```text
-public/example/         Sample photos used on the upload screen
 src/assets/script/      Model storage, inference pipeline, runtime utilities, config
 src/components/         App components (upload, preview, background picker, ...)
 src/components/ui/      shadcn/ui primitives
