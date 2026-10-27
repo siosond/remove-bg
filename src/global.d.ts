@@ -1,3 +1,3 @@
 interface Navigator {
-  readonly gpu: GPU;
+	readonly gpu: GPU;
 }

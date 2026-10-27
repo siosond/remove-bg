@@ -1,69 +1,69 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { ThemeProvider } from 'next-themes';
-import { afterEach, beforeAll, expect, test, vi } from 'vitest';
-import App from './App';
-import Background from './components/Background';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { ThemeProvider } from "next-themes";
+import { afterEach, beforeAll, expect, test, vi } from "vitest";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import App from "./App";
+import Background from "./components/Background";
 
-vi.mock('./assets/script/model', () => ({
-  getModel: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
-  setModel: vi.fn(),
+vi.mock("./assets/script/model", () => ({
+	getModel: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
+	setModel: vi.fn(),
 }));
 
 beforeAll(() => {
-  // jsdom lacks matchMedia, which next-themes and sonner read
-  window.matchMedia ??= ((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    addListener: () => {},
-    removeListener: () => {},
-    dispatchEvent: () => false,
-  })) as typeof window.matchMedia;
+	// jsdom lacks matchMedia, which next-themes and sonner read
+	window.matchMedia ??= ((query: string) => ({
+		matches: false,
+		media: query,
+		onchange: null,
+		addEventListener: () => {},
+		removeEventListener: () => {},
+		addListener: () => {},
+		removeListener: () => {},
+		dispatchEvent: () => false,
+	})) as typeof window.matchMedia;
 });
 
 afterEach(() => {
-  cleanup();
-  document.documentElement.classList.remove('dark');
-  localStorage.clear();
+	cleanup();
+	document.documentElement.classList.remove("dark");
+	localStorage.clear();
 });
 
 const renderApp = () =>
-  render(
-    <ThemeProvider attribute='class' defaultTheme='light'>
-      <TooltipProvider>
-        <App />
-      </TooltipProvider>
-    </ThemeProvider>
-  );
+	render(
+		<ThemeProvider attribute="class" defaultTheme="light">
+			<TooltipProvider>
+				<App />
+			</TooltipProvider>
+		</ThemeProvider>,
+	);
 
-test('renders the header and the upload screen', () => {
-  renderApp();
-  expect(screen.getByText('remove')).toBeInTheDocument();
-  expect(
-    screen.getByRole('button', { name: 'Choose a photo' })
-  ).toBeInTheDocument();
-  expect(screen.getAllByRole('button', { name: /example/i })).toHaveLength(4);
+test("renders the header and the upload screen", () => {
+	renderApp();
+	expect(screen.getByText("remove")).toBeInTheDocument();
+	expect(
+		screen.getByRole("button", { name: "Choose a photo" }),
+	).toBeInTheDocument();
+	expect(screen.getAllByRole("button", { name: /example/i })).toHaveLength(4);
 });
 
-test('rejects files that are not images', async () => {
-  const { container } = renderApp();
-  const input = container.querySelector('input[type=file]') as HTMLInputElement;
-  const file = new File(['hello'], 'notes.txt', { type: 'text/plain' });
-  fireEvent.change(input, { target: { files: [file] } });
-  expect(await screen.findByText("That's not an image")).toBeInTheDocument();
-  expect(
-    screen.getByRole('button', { name: 'Choose a photo' })
-  ).toBeInTheDocument();
+test("rejects files that are not images", async () => {
+	const { container } = renderApp();
+	const input = container.querySelector("input[type=file]") as HTMLInputElement;
+	const file = new File(["hello"], "notes.txt", { type: "text/plain" });
+	fireEvent.change(input, { target: { files: [file] } });
+	expect(await screen.findByText("That's not an image")).toBeInTheDocument();
+	expect(
+		screen.getByRole("button", { name: "Choose a photo" }),
+	).toBeInTheDocument();
 });
 
-test('reports the selected background color', () => {
-  const onChangeBg = vi.fn();
-  render(<Background onChangeBg={onChangeBg} />);
-  fireEvent.click(screen.getByRole('radio', { name: '#e91e63' }));
-  expect(onChangeBg).toHaveBeenLastCalledWith('#e91e63');
-  fireEvent.click(screen.getByRole('radio', { name: 'Transparent' }));
-  expect(onChangeBg).toHaveBeenLastCalledWith('transparent');
+test("reports the selected background color", () => {
+	const onChangeBg = vi.fn();
+	render(<Background onChangeBg={onChangeBg} />);
+	fireEvent.click(screen.getByRole("radio", { name: "#e91e63" }));
+	expect(onChangeBg).toHaveBeenLastCalledWith("#e91e63");
+	fireEvent.click(screen.getByRole("radio", { name: "Transparent" }));
+	expect(onChangeBg).toHaveBeenLastCalledWith("transparent");
 });
