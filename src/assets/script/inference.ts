@@ -1,6 +1,7 @@
 import type { NdArray } from "ndarray";
 import ndarray from "ndarray";
 import * as ort from "onnxruntime-web/webgpu";
+import { baseAlpha, composeAlpha, type MaskAdjust } from "./mask";
 import { getModel } from "./model";
 import { getWebCanUse, setOrtEnv } from "./utils";
 
@@ -103,26 +104,6 @@ function float32ToUint8(float32Array: NdArray<Float32Array>) {
 	return ndarray(uint8Array, float32Array.shape);
 }
 
-function imageToBlob(imageTensor: NdArray<Uint8ClampedArray>, quality = 0.8) {
-	const [height, width] = imageTensor.shape;
-	const imageData = new ImageData(
-		new Uint8ClampedArray(imageTensor.data),
-		width,
-		height,
-	);
-
-	const canvas = createCanvas(imageData.width, imageData.height) as CanvasType;
-	const ctx = canvas.getContext("2d") as
-		| CanvasRenderingContext2D
-		| OffscreenCanvasRenderingContext2D;
-	ctx.putImageData(imageData, 0, 0);
-
-	return canvasToBlob(canvas, {
-		quality,
-		type: "image/png",
-	});
-}
-
 export async function canvasToBlob(
 	canvas: CanvasType,
 	params: { type: string; quality: number },
@@ -203,7 +184,18 @@ export async function initSession() {
 	return ort;
 }
 
-async function inference(imageUrl: string) {
+export interface InferenceResult {
+	width: number;
+	height: number;
+	/** the untouched source pixels */
+	rgba: Uint8ClampedArray;
+	/** the model's cutout mask, one byte per pixel at the source size */
+	mask: Uint8Array;
+}
+
+export async function runModel(
+	imageUrl: string,
+): Promise<InferenceResult | undefined> {
 	if (sessionIsRunning) {
 		return;
 	}
@@ -241,14 +233,48 @@ async function inference(imageUrl: string) {
 		originWidth,
 		originHeight,
 	);
-	const stride = originWidth * originHeight;
-	const outImageTensor = imageData;
-	for (let i = 0; i < stride; i++) {
-		outImageTensor.data[4 * i + 3] = resizeMaskUint8.data[i];
-	}
-	const outImage = await imageToBlob(outImageTensor);
 	console.timeEnd("sessionRun");
-	return outImage;
+	return {
+		width: originWidth,
+		height: originHeight,
+		rgba: canvasImageData.data,
+		mask: resizeMaskUint8.data as Uint8Array,
+	};
 }
 
-export default inference;
+// the part of the pipeline before touch-up and feather only changes when these do
+const baseKey = ({ cutoff, edge, cleanup, largestOnly }: MaskAdjust) =>
+	`${cutoff}|${edge}|${cleanup}|${largestOnly}`;
+
+const baseCache = new WeakMap<
+	InferenceResult,
+	{ key: string; alpha: Uint8Array }
+>();
+
+/**
+ * The source pixels with the mask, shaped by `adjust` and the touch-up layer, as
+ * their alpha. The slow steps are cached, so painting and feathering stay fast.
+ */
+export function renderResult(
+	result: InferenceResult,
+	adjust: MaskAdjust,
+	paint: Uint8Array | null = null,
+) {
+	const key = baseKey(adjust);
+	let base = baseCache.get(result);
+	if (!base || base.key !== key) {
+		base = {
+			key,
+			alpha: baseAlpha(result.mask, result.width, result.height, adjust),
+		};
+		baseCache.set(result, base);
+	}
+	return composeAlpha(
+		result.rgba,
+		base.alpha,
+		paint,
+		result.width,
+		result.height,
+		adjust.feather,
+	);
+}

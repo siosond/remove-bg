@@ -16,22 +16,29 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { CanvasType } from "../assets/script/inference";
-import inference, {
-	canvasToBlob,
-	createCanvas,
-} from "../assets/script/inference";
-import Background from "./Background";
+import {
+	type Backdrop,
+	type Cutout,
+	drawComposite,
+	exportImage,
+	makeCutout,
+	TRANSPARENT_BACKDROP,
+} from "../assets/script/composite";
+import type { InferenceResult } from "../assets/script/inference";
+import { renderResult, runModel } from "../assets/script/inference";
+import { type MaskAdjust, NO_ADJUST } from "../assets/script/mask";
+import BrushOverlay from "./BrushOverlay";
+import BackgroundPanel from "./panel/BackgroundPanel";
+import CutoutPanel from "./panel/CutoutPanel";
+import ExportPanel from "./panel/ExportPanel";
+import TouchUpPanel from "./panel/TouchUpPanel";
+import { useTouchUp } from "./useTouchUp";
 
 interface PreviewComponentProps {
 	originUrl: string;
 	originName: string;
 	onClick: (type: "delete") => void;
 }
-
-let originWidth: number;
-let originHeight: number;
-let handledImgBgColor = "";
 
 const calcCanvasShape: (w: number, h: number) => [number, number] = (w, h) => {
 	let canvasWidth: number;
@@ -46,48 +53,32 @@ const calcCanvasShape: (w: number, h: number) => [number, number] = (w, h) => {
 	return [canvasWidth, canvasHeight];
 };
 
-const downloadImage = (
-	handledImgUrl: string,
-	name: string,
-	onDone?: () => void,
-) => {
-	const canvas: CanvasType = createCanvas(originWidth, originHeight);
-	const ctx = canvas.getContext("2d") as
-		| CanvasRenderingContext2D
-		| OffscreenCanvasRenderingContext2D;
-	const img = new Image();
-	img.onload = async () => {
-		if (
-			handledImgBgColor &&
-			(handledImgBgColor.indexOf("#") > -1 ||
-				handledImgBgColor === "transparent")
-		) {
-			ctx.fillStyle = handledImgBgColor;
-			ctx.fillRect(0, 0, originWidth, originHeight);
-		}
-		ctx.drawImage(img, 0, 0, originWidth, originHeight);
-		const imageBlob = await canvasToBlob(canvas, {
-			quality: 0.8,
-			type: "image/png",
-		});
-		const link = document.createElement("a");
-		link.href = URL.createObjectURL(imageBlob);
-		link.download = `${name}_rbg.png`;
+const loadImage = (url: string) =>
+	new Promise<HTMLImageElement>((resolve, reject) => {
+		const img = new Image();
+		img.onload = () => resolve(img);
+		img.onerror = reject;
+		img.src = url;
+	});
 
-		link.dispatchEvent(
-			new MouseEvent("click", {
-				bubbles: true,
-				cancelable: true,
-				view: window,
-			}),
-		);
+const saveBlob = (blob: Blob, filename: string) => {
+	const url = URL.createObjectURL(blob);
+	const link = document.createElement("a");
+	link.href = url;
+	link.download = filename;
 
-		setTimeout(() => {
-			link.remove();
-		}, 100);
-		onDone?.();
-	};
-	img.src = handledImgUrl;
+	link.dispatchEvent(
+		new MouseEvent("click", {
+			bubbles: true,
+			cancelable: true,
+			view: window,
+		}),
+	);
+
+	setTimeout(() => {
+		link.remove();
+		URL.revokeObjectURL(url);
+	}, 1000);
 };
 
 const Preview: React.FC<PreviewComponentProps> = ({
@@ -99,13 +90,29 @@ const Preview: React.FC<PreviewComponentProps> = ({
 	const slider = useReactCompareSlider();
 	const sliderRef = useRef(slider);
 	const [aspect, setAspect] = useState(1);
-	const [handledUrl, setHandledUrl] = useState("");
 	const [status, setStatus] = useState<"processing" | "done" | "error">(
 		"processing",
 	);
+	const [adjust, setAdjust] = useState<MaskAdjust>(NO_ADJUST);
+	const [backdrop, setBackdrop] = useState<Backdrop>(TRANSPARENT_BACKDROP);
+	const [trim, setTrim] = useState(false);
+	const resultRef = useRef<InferenceResult | null>(null);
+	const cutoutRef = useRef<Cutout | null>(null);
+	const originalRef = useRef<HTMLImageElement | null>(null);
+	const renderedAdjustRef = useRef(NO_ADJUST);
+	const renderedVersionRef = useRef(-1);
+	const originUrlRef = useRef(originUrl);
+	const touchUp = useTouchUp();
+	const { reset: resetTouchUp, version: paintVersion, paintRef } = touchUp;
+	const showRemoved = touchUp.tool !== "off";
+
+	const backdropRef = useRef(backdrop);
+	const showRemovedRef = useRef(showRemoved);
 
 	useEffect(() => {
 		sliderRef.current = slider;
+		backdropRef.current = backdrop;
+		showRemovedRef.current = showRemoved;
 	});
 
 	const fireTransition = useCallback(async () => {
@@ -135,70 +142,58 @@ const Preview: React.FC<PreviewComponentProps> = ({
 		);
 	}, []);
 
-	const draw = useCallback((dataUrl: string, background = "") => {
-		const ctx = canvasRef.current?.getContext("2d");
-		if (ctx && dataUrl) {
-			ctx.clearRect(
-				0,
-				0,
-				canvasRef.current?.width || 0,
-				canvasRef.current?.height || 0,
+	// the latest settings unless told otherwise, so async callbacks never paint stale ones
+	const paintPreview = useCallback(
+		(target = backdropRef.current, removed = showRemovedRef.current) => {
+			const canvas = canvasRef.current;
+			const cutout = cutoutRef.current;
+			const ctx = canvas?.getContext("2d");
+			if (!canvas || !ctx || !cutout) return;
+			drawComposite(
+				ctx,
+				canvas.width,
+				canvas.height,
+				{ cutout, original: originalRef.current, showRemoved: removed },
+				target,
 			);
+		},
+		[],
+	);
 
-			const img = new Image();
-			img.onload = async () => {
-				let width = 0;
-				let height = 0;
-				if (canvasRef.current?.width && canvasRef.current?.height) {
-					width = canvasRef.current?.width;
-					height = canvasRef.current?.height;
+	useEffect(() => {
+		originUrlRef.current = originUrl;
+
+		// size the preview canvas and show the original until the cutout is ready
+		loadImage(originUrl)
+			.then((img) => {
+				const canvas = canvasRef.current;
+				const ctx = canvas?.getContext("2d");
+				if (!canvas || !ctx || originUrlRef.current !== originUrl) return;
+				originalRef.current = img;
+				const [width, height] = calcCanvasShape(img.width, img.height);
+				canvas.width = width;
+				canvas.height = height;
+				if (width && height) setAspect(width / height);
+				if (cutoutRef.current) {
+					paintPreview();
 				} else {
-					if (canvasRef.current) {
-						originWidth = img.width;
-						originHeight = img.height;
-						[width = 0, height = 0] = calcCanvasShape(
-							originWidth,
-							originHeight,
-						);
-					}
+					ctx.drawImage(img, 0, 0, width, height);
 				}
-				if (canvasRef.current) {
-					canvasRef.current.width = width;
-					canvasRef.current.height = height;
-					if (width && height) setAspect(width / height);
-				}
-				if (
-					background &&
-					(background.indexOf("#") > -1 || background === "transparent")
-				) {
-					ctx.fillStyle = background;
-					ctx.fillRect(0, 0, width, height);
-				}
-				ctx.drawImage(img, 0, 0, width, height);
-			};
-			img.src = dataUrl;
-		}
-	}, []);
+			})
+			.catch(console.error);
 
-	useEffect(() => {
-		if (canvasRef.current) {
-			// canvasRef.current.width = 0;
-			canvasRef.current.height = 0;
-		}
-	}, []);
-
-	useEffect(() => {
-		// origin image
-		draw(originUrl);
-
-		// handle image
-		inference(originUrl)
+		runModel(originUrl)
 			.then((res) => {
-				if (!res) return;
-				const blobURL = URL.createObjectURL(res);
-				draw(blobURL);
+				if (!res || originUrlRef.current !== originUrl) return;
+				resultRef.current = res;
+				renderedAdjustRef.current = NO_ADJUST;
+				cutoutRef.current = makeCutout(
+					renderResult(res, NO_ADJUST),
+					res.width,
+					res.height,
+				);
+				resetTouchUp(res.width, res.height);
 				setStatus("done");
-				setHandledUrl(blobURL);
 				fireTransition();
 			})
 			.catch((error) => {
@@ -208,21 +203,65 @@ const Preview: React.FC<PreviewComponentProps> = ({
 					description: "Try a different photo.",
 				});
 			});
-	}, [originUrl, draw, fireTransition]);
+	}, [originUrl, paintPreview, fireTransition, resetTouchUp]);
 
-	const handleChangeBg = (backgroundColor: string) => {
+	// re-apply the cached mask when a slider moves or a stroke is painted,
+	// without re-running the model
+	useEffect(() => {
+		const result = resultRef.current;
+		if (
+			status !== "done" ||
+			!result ||
+			(adjust === renderedAdjustRef.current &&
+				paintVersion === renderedVersionRef.current)
+		) {
+			return;
+		}
+		const frame = requestAnimationFrame(() => {
+			cutoutRef.current = makeCutout(
+				renderResult(result, adjust, paintRef.current),
+				result.width,
+				result.height,
+			);
+			renderedAdjustRef.current = adjust;
+			renderedVersionRef.current = paintVersion;
+			paintPreview();
+		});
+		return () => cancelAnimationFrame(frame);
+	}, [adjust, paintVersion, paintRef, status, paintPreview]);
+
+	// the cutout is ready, or the backdrop or the removed-area view changed
+	useEffect(() => {
+		if (status === "done") paintPreview(backdrop, showRemoved);
+	}, [backdrop, showRemoved, status, paintPreview]);
+
+	// painting needs the whole cutout in view, not the before/after split
+	useEffect(() => {
+		if (showRemoved) sliderRef.current.setPosition(0);
+	}, [showRemoved]);
+
+	const handleChangeBackdrop = (next: Backdrop) => {
 		sliderRef.current.setPosition(0);
-		handledImgBgColor = backgroundColor;
-		draw(handledUrl, backgroundColor);
+		setBackdrop(next);
 	};
 
-	const downloadHandledImage = () => {
-		if (!handledUrl) return;
-		downloadImage(handledUrl, originName, () =>
+	const downloadHandledImage = async () => {
+		const cutout = cutoutRef.current;
+		if (!cutout) return;
+		try {
+			const blob = await exportImage(
+				{ cutout, original: originalRef.current },
+				backdrop,
+				trim,
+			);
+			saveBlob(blob, `${originName}_rbg.png`);
 			toast.success("Saved!", {
 				description: `${originName}_rbg.png`,
-			}),
-		);
+			});
+		} catch (error) {
+			console.error(error);
+			toast.error("Couldn't save the image");
+		}
 	};
 
 	return (
@@ -293,6 +332,17 @@ const Preview: React.FC<PreviewComponentProps> = ({
 							</Slider.Root>
 						</Slider.Provider>
 
+						{status === "done" && showRemoved && resultRef.current && (
+							<BrushOverlay
+								width={resultRef.current.width}
+								height={resultRef.current.height}
+								radius={touchUp.radius()}
+								onBegin={touchUp.begin}
+								onMove={touchUp.move}
+								onEnd={touchUp.end}
+							/>
+						)}
+
 						{status === "processing" && (
 							<div className="absolute inset-0 z-10 flex items-center justify-center">
 								<Skeleton className="absolute inset-0 rounded-none" />
@@ -308,13 +358,41 @@ const Preview: React.FC<PreviewComponentProps> = ({
 
 			<Card>
 				<CardHeader>
-					<CardTitle>Background</CardTitle>
+					<CardTitle>Adjust</CardTitle>
 					<CardDescription>
-						Pick a color to go behind your photo.
+						Fine-tune the cutout and pick a backdrop.
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-6">
-					<Background onChangeBg={handleChangeBg} />
+					<CutoutPanel
+						adjust={adjust}
+						disabled={status !== "done"}
+						onChange={setAdjust}
+					/>
+					<Separator />
+					<TouchUpPanel
+						tool={touchUp.tool}
+						size={touchUp.size}
+						disabled={status !== "done"}
+						canUndo={touchUp.canUndo}
+						canRedo={touchUp.canRedo}
+						onTool={touchUp.setTool}
+						onSize={touchUp.setSize}
+						onUndo={touchUp.undo}
+						onRedo={touchUp.redo}
+						onClear={touchUp.clear}
+					/>
+					<Separator />
+					<BackgroundPanel
+						backdrop={backdrop}
+						onChange={handleChangeBackdrop}
+					/>
+					<Separator />
+					<ExportPanel
+						trim={trim}
+						disabled={status !== "done"}
+						onChangeTrim={setTrim}
+					/>
 					<Separator />
 					<div className="flex flex-col gap-2">
 						<Button
