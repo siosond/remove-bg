@@ -8,22 +8,7 @@
 A free, open-source background remover that runs entirely in your browser.<br>
 Powered by WebGPU and WebAssembly. No uploads, no accounts, no cost.
 
-[![Downloads](https://img.shields.io/github/downloads/siosond/remove-bg/total.svg)](https://github.com/siosond/remove-bg/releases)
-[![Open issues](https://img.shields.io/github/issues/siosond/remove-bg)](https://github.com/siosond/remove-bg/issues)
-[![Closed issues](https://img.shields.io/github/issues-closed/siosond/remove-bg)](https://github.com/siosond/remove-bg/issues)
-[![License](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](https://github.com/siosond/remove-bg/blob/main/LICENSE)
-
-![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-6-3178c6?logo=typescript&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-8-646cff?logo=vite&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06b6d4?logo=tailwindcss&logoColor=white)
-![ONNX Runtime Web](https://img.shields.io/badge/ONNX_Runtime_Web-1.x-005ced?logo=onnx&logoColor=white)
-
 [Features](#features) · [Getting started](#getting-started) · [Tech stack](#tech-stack) · [How it works](#how-it-works) · [License](#license)
-
-<br>
-
-<img src="src/assets/img/example.png" alt="Before and after comparison of a photo with its background removed" width="600">
 
 </div>
 
