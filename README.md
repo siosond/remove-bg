@@ -2,10 +2,10 @@
 
 <div align="center">
 
-[![download](https://img.shields.io/github/downloads/reamd/remove-bg/total.svg)](https://github.com/reamd/remove-bg/releases)
-[![Open issue](https://img.shields.io/github/issues/reamd/remove-bg)](https://github.com/reamd/remove-bg/issues)
-[![Closed issue](https://img.shields.io/github/issues-closed/reamd/remove-bg)](https://github.com/reamd/remove-bg/issues)
-[![LICENSE](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](https://github.com/reamd/remove-bg/blob/master/LICENSE)
+[![download](https://img.shields.io/github/downloads/siosond/remove-bg/total.svg)](https://github.com/siosond/remove-bg/releases)
+[![Open issue](https://img.shields.io/github/issues/siosond/remove-bg)](https://github.com/siosond/remove-bg/issues)
+[![Closed issue](https://img.shields.io/github/issues-closed/siosond/remove-bg)](https://github.com/siosond/remove-bg/issues)
+[![LICENSE](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](https://github.com/siosond/remove-bg/blob/master/LICENSE)
 
 </div>
 
@@ -26,7 +26,7 @@
 1. Clone this repository
 
 ```bash
-git clone https://github.com/daxmeng/remove-bg.git
+git clone https://github.com/siosond/remove-bg.git
 cd remove-bg
 ```
 

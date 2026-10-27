@@ -47,7 +47,7 @@ const Head: React.FC = () => {
             <TooltipTrigger asChild>
               <Button variant='ghost' size='icon' asChild>
                 <a
-                  href='https://github.com/reamd/remove-bg'
+                  href='https://github.com/siosond/remove-bg'
                   target='_blank'
                   rel='noreferrer'
                   aria-label='View on GitHub'
