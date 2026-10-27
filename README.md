@@ -31,7 +31,7 @@ Powered by WebGPU and WebAssembly. No uploads, no accounts, no cost.
 
 - **Local processing.** Images are processed in the browser and are never uploaded.
 - **Hardware acceleration.** Uses WebGPU when available and falls back to multi-threaded WebAssembly.
-- **Small model.** The ~5 MB model is downloaded once and cached in the browser.
+- **Small model.** The ~5 MB model is downloaded the first time you remove a background, then cached in the browser.
 - **Cutout controls.** Sliders for removal, edge size and edge softness, plus options to clean up small specks and holes and to keep only the main subject.
 - **Brush.** Erase or restore areas, with adjustable brush size and undo and redo.
 - **Background.** Transparent, a solid or custom color, or a blurred copy of the original image.
@@ -81,7 +81,7 @@ Then open the local URL printed in the terminal.
 
 ## How it works
 
-1. **Model download.** On first load, `Download.tsx` fetches `u2netp.onnx` from the app's own `public/models/` folder (URL in `src/assets/script/config.ts`) with a progress dialog and stores it in IndexedDB through `model.ts`. Later visits read it straight from the cache.
+1. **Model download.** The first time an image is processed, `ensureModel` in `model.ts` fetches `u2netp.onnx` from the app's own `public/models/` folder (URL in `src/assets/script/config.ts`), `Download.tsx` shows a progress dialog, and the model is stored in IndexedDB. Later visits read it straight from the cache, and nothing is downloaded until an image is chosen.
 2. **Runtime setup.** `utils.ts` checks for WebGPU and WebAssembly threads, and `inference.ts` creates the ONNX Runtime session on WebGPU when available, otherwise on WASM.
 3. **Inference.** The image is resized to 320 × 320 with bilinear interpolation, normalized, converted from HWC to BCHW layout and passed to the model. The output saliency mask is min-max normalized.
 4. **Mask adjustment.** The mask is scaled back to the original size and shaped by the removal, cleanup, edge size, brush and edge softness settings in `mask.ts`. The live preview works on a reduced-size copy; the export applies the same settings to the full-size image.

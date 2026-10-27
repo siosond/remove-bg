@@ -5,11 +5,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import App from "./App";
 import Background from "./components/Background";
 
-vi.mock("./assets/script/model", () => ({
-	getModel: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
-	setModel: vi.fn(),
-}));
-
 beforeAll(() => {
 	// jsdom lacks matchMedia, which next-themes and sonner read
 	window.matchMedia ??= ((query: string) => ({

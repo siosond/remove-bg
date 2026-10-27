@@ -7,7 +7,7 @@ import {
 	composeAlphaOnly,
 	type MaskAdjust,
 } from "./mask";
-import { getModel } from "./model";
+import { ensureModel } from "./model";
 import { getWebCanUse, setOrtEnv } from "./utils";
 
 export type CanvasType = OffscreenCanvas | HTMLCanvasElement;
@@ -174,7 +174,7 @@ export async function initSession() {
 	if (!session) {
 		setOrtEnv(webCanUse, ort.env);
 		console.time("sessionCreate");
-		const modelBuffer = (await getModel()) as ArrayBuffer;
+		const modelBuffer = await ensureModel();
 		session = await ort.InferenceSession.create(modelBuffer, {
 			executionProviders: [webCanUse.webGpu ? "webgpu" : "wasm"],
 			// executionProviders: ['wasm'],
@@ -205,6 +205,15 @@ export async function runModel(
 		return;
 	}
 	sessionIsRunning = true;
+	try {
+		return await infer(imageUrl);
+	} finally {
+		// also when the model can't be downloaded or loaded, so the next image can retry
+		sessionIsRunning = false;
+	}
+}
+
+async function infer(imageUrl: string): Promise<InferenceResult> {
 	await initSession();
 	console.time("sessionRun");
 	const canvasImageData = await getCanvasData(imageUrl);
@@ -225,7 +234,6 @@ export async function runModel(
 	const output = await (session as ort.InferenceSession).run(feeds, [
 		outputName,
 	]);
-	sessionIsRunning = false;
 	const outputImage = output[outputName];
 
 	// outputImage [1, 1, 320, 320]
