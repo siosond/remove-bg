@@ -202,7 +202,7 @@ const Preview: React.FC<PreviewComponentProps> = ({
       .catch((error) => {
         console.error(error);
         setStatus('error');
-        toast.error("Couldn't cut this one out", {
+        toast.error("Couldn't remove the background", {
           description: 'Try a different photo.',
         });
       });
@@ -308,7 +308,7 @@ const Preview: React.FC<PreviewComponentProps> = ({
         <CardHeader>
           <CardTitle>Background</CardTitle>
           <CardDescription>
-            Pick a color to go behind your cutout.
+            Pick a color to go behind your photo.
           </CardDescription>
         </CardHeader>
         <CardContent className='flex flex-col gap-6'>

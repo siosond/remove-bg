@@ -115,7 +115,7 @@ const DragDropUpload: React.FC<UploadComponentProps> = ({ onFileChange }) => {
     <>
       <Card className='mx-auto w-full max-w-xl'>
         <CardHeader className='text-center'>
-          <CardTitle className='text-2xl'>Cut out any background</CardTitle>
+          <CardTitle className='text-2xl'>Remove any background</CardTitle>
           <CardDescription>
             Free, and your photo never leaves your device.
           </CardDescription>
