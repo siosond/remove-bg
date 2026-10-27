@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, Download as DownloadIcon, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
@@ -16,11 +16,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import * as Slider from 'react-compare-slider/components';
 import { useReactCompareSlider } from 'react-compare-slider/hooks';
 import Background from './Background';
-import inference, {
-  createCanvas,
-  canvasToBlob,
-} from '../assets/script/inference';
 import type { CanvasType } from '../assets/script/inference';
+import inference, {
+  canvasToBlob,
+  createCanvas,
+} from '../assets/script/inference';
 
 interface PreviewComponentProps {
   originUrl: string;

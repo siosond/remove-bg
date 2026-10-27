@@ -1,5 +1,5 @@
-import ndarray from 'ndarray';
 import type { NdArray } from 'ndarray';
+import ndarray from 'ndarray';
 import * as ort from 'onnxruntime-web/webgpu';
 import { getWebCanUse, setOrtEnv } from './utils';
 import { getModel } from './model';

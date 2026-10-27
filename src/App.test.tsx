@@ -45,9 +45,7 @@ test('renders the header and the upload screen', () => {
   expect(
     screen.getByRole('button', { name: 'Choose a photo' })
   ).toBeInTheDocument();
-  expect(
-    screen.getAllByRole('button', { name: /example/i })
-  ).toHaveLength(4);
+  expect(screen.getAllByRole('button', { name: /example/i })).toHaveLength(4);
 });
 
 test('rejects files that are not images', async () => {

@@ -59,7 +59,7 @@ const Background: React.FC<BackgroundComponentProps> = ({ onChangeBg }) => {
     }
   };
 
-  const handleCustomChange =(event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCustomChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setCustomColor(event.target.value);
     setSelected(CUSTOM);
     applyCustomColor(event.target.value);
