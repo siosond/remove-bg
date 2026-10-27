@@ -61,7 +61,9 @@ Then open the local URL printed in the terminal.
 | `npm run dev`     | Start the Vite dev server                      |
 | `npm run build`   | Type-check (`tsc -b`) and build for production |
 | `npm run preview` | Preview the production build locally           |
-| `npm run lint`    | Lint the sources with oxlint                   |
+| `npm run lint`    | Lint the sources with Biome                    |
+| `npm run format`  | Format the sources with Biome                  |
+| `npm run check`   | Run Biome lint, format and import checks       |
 | `npm test`        | Run the unit tests with Vitest                 |
 
 ## Tech stack
@@ -69,7 +71,7 @@ Then open the local URL printed in the terminal.
 | Layer         | Technologies                                                                                                                 |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | UI            | React 19, TypeScript 6, shadcn/ui (Radix UI), Tailwind CSS 4, lucide-react, sonner, next-themes, react-compare-slider, Inter |
-| Build & tools | Vite 8, Vitest, Testing Library (jsdom), oxlint, Prettier                                                                    |
+| Build & tools | Vite 8, Vitest, Testing Library (jsdom), Biome                                                                               |
 | ML runtime    | ONNX Runtime Web (`onnxruntime-web/webgpu`), ndarray                                                                         |
 | Storage       | localforage (IndexedDB) for the cached model                                                                                 |
 | Model         | [U²-Net](https://github.com/xuebinqin/U-2-Net) lightweight variant (`u2netp.onnx`, ~5 MB)                                    |
