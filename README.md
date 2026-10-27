@@ -1,60 +1,109 @@
-# <div align="center"><img src="src/assets/img/remove-bg_logo.png" width=300/></div>
-
 <div align="center">
 
-[![download](https://img.shields.io/github/downloads/siosond/remove-bg/total.svg)](https://github.com/siosond/remove-bg/releases)
-[![Open issue](https://img.shields.io/github/issues/siosond/remove-bg)](https://github.com/siosond/remove-bg/issues)
-[![Closed issue](https://img.shields.io/github/issues-closed/siosond/remove-bg)](https://github.com/siosond/remove-bg/issues)
-[![LICENSE](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](https://github.com/siosond/remove-bg/blob/master/LICENSE)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="src/assets/img/readme-logo-dark.svg">
+  <img src="src/assets/img/readme-logo-light.svg" alt="remove-bg" width="320">
+</picture>
+
+A free, open-source background remover that runs entirely in your browser.<br>
+Powered by WebGPU and WebAssembly. No uploads, no accounts, no cost.
+
+[![Downloads](https://img.shields.io/github/downloads/siosond/remove-bg/total.svg)](https://github.com/siosond/remove-bg/releases)
+[![Open issues](https://img.shields.io/github/issues/siosond/remove-bg)](https://github.com/siosond/remove-bg/issues)
+[![Closed issues](https://img.shields.io/github/issues-closed/siosond/remove-bg)](https://github.com/siosond/remove-bg/issues)
+[![License](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](https://github.com/siosond/remove-bg/blob/main/LICENSE)
+
+![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-6-3178c6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-8-646cff?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06b6d4?logo=tailwindcss&logoColor=white)
+![ONNX Runtime Web](https://img.shields.io/badge/ONNX_Runtime_Web-1.x-005ced?logo=onnx&logoColor=white)
+
+[Features](#features) · [Getting started](#getting-started) · [Tech stack](#tech-stack) · [How it works](#how-it-works) · [License](#license)
+
+<br>
+
+<img src="src/assets/img/example.png" alt="Before and after comparison of a photo with its background removed" width="600">
 
 </div>
 
-> :rocket:A free, open-source tool powered by WebGPU and WebAssembly (WASM) in the browser, efficiently removes backgrounds from images without any additional costs or privacy concerns.
+## Features
 
-<div align="center">
-<img src="src/assets/img/example.png" width=600/>
-</div>
+- **Private by design.** Images are processed on your device and never uploaded.
+- **Fast.** Uses WebGPU when the browser supports it and falls back to multi-threaded WebAssembly.
+- **Light download.** The ~5 MB model is fetched once, then cached in your browser for later visits.
+- **Easy input.** Drag and drop anywhere on the page, pick a file, or try one of the built-in example photos.
+- **Compare and customize.** Slide between the original and the result, then place the cutout on a transparent, solid or custom background color.
+- **Export.** Download the result as a PNG.
+- **Light and dark themes.**
 
-### Demo link
+## Getting started
 
-[https://remove-bg.djfos.fun](https://remove-bg.djfos.fun)
+### Prerequisites
 
-## :computer:How to use
+- [Node.js](https://nodejs.org/) 22.12 or later
 
-### Locally
-
-1. Clone this repository
+### Run locally
 
 ```bash
 git clone https://github.com/siosond/remove-bg.git
 cd remove-bg
-```
-
-2. Install dependencies (Node.js >= 22.12)
-
-```bash
 npm install
-```
-
-3. Start web-application
-
-```bash
 npm run dev
 ```
 
-## :star:Contact
+Then open the local URL printed in the terminal.
 
-If you have any question, please follow me on X:
+### Scripts
 
-[![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/daxmeng)](https://x.com/daxmeng)
+| Command           | Description                                    |
+| ----------------- | ---------------------------------------------- |
+| `npm run dev`     | Start the Vite dev server                      |
+| `npm run build`   | Type-check (`tsc -b`) and build for production |
+| `npm run preview` | Preview the production build locally           |
+| `npm run lint`    | Lint the sources with oxlint                   |
+| `npm test`        | Run the unit tests with Vitest                 |
 
-## :information_desk_person:Acknowledgements
+## Tech stack
 
-Model: [xuebinqin/U-2-Net](https://github.com/xuebinqin/U-2-Net)
+| Layer         | Technologies                                                                                                                 |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| UI            | React 19, TypeScript 6, shadcn/ui (Radix UI), Tailwind CSS 4, lucide-react, sonner, next-themes, react-compare-slider, Inter |
+| Build & tools | Vite 8, Vitest, Testing Library (jsdom), oxlint, Prettier                                                                    |
+| ML runtime    | ONNX Runtime Web (`onnxruntime-web/webgpu`), ndarray                                                                         |
+| Storage       | localforage (IndexedDB) for the cached model                                                                                 |
+| Model         | [U²-Net](https://github.com/xuebinqin/U-2-Net) lightweight variant (`u2netp.onnx`, ~5 MB)                                    |
 
-### BibTeX
+## How it works
 
+1. **Model download.** On first load, `Download.tsx` fetches `u2netp.onnx` (URL in `src/assets/script/config.ts`) with a progress dialog and stores it in IndexedDB through `model.ts`. Later visits read it straight from the cache.
+2. **Runtime setup.** `utils.ts` checks for WebGPU and WebAssembly threads, and `inference.ts` creates the ONNX Runtime session on WebGPU when available, otherwise on WASM.
+3. **Inference.** The image is resized to 320 × 320 with bilinear interpolation, normalized, converted from HWC to BCHW layout and passed to the model. The output saliency mask is min-max normalized.
+4. **Compositing.** The mask is scaled back to the original size and written into the image's alpha channel. `Preview.tsx` draws the result over the chosen background and exports it as a PNG.
+
+### Project layout
+
+```text
+public/example/         Sample photos used on the upload screen
+src/assets/script/      Model storage, inference pipeline, runtime utilities, config
+src/components/         App components (upload, preview, background picker, ...)
+src/components/ui/      shadcn/ui primitives
 ```
+
+## License
+
+Released under the [GNU GPL v3.0](LICENSE).
+
+## Acknowledgements
+
+This project is a fork of [daxmeng/remove-bg](https://github.com/daxmeng/remove-bg).
+
+Background removal is powered by [U²-Net](https://github.com/xuebinqin/U-2-Net) by Xuebin Qin et al.
+
+<details>
+<summary>Citation (BibTeX)</summary>
+
+```bibtex
 @InProceedings{Qin_2020_PR,
 title = {U2-Net: Going Deeper with Nested U-Structure for Salient Object Detection},
 author = {Qin, Xuebin and Zhang, Zichen and Huang, Chenyang and Dehghan, Masood and Zaiane, Osmar and Jagersand, Martin},
@@ -64,3 +113,5 @@ pages = {107404},
 year = {2020}
 }
 ```
+
+</details>
