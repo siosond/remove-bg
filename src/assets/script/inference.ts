@@ -220,9 +220,13 @@ export async function runModel(
 			input.shape, // [1, 3, 320, 320]
 		),
 	};
-	const output = await (session as ort.InferenceSession).run(feeds);
+	// Only the first output (the fused mask) is used; skip reading the others.
+	const outputName = (session as ort.InferenceSession).outputNames[0];
+	const output = await (session as ort.InferenceSession).run(feeds, [
+		outputName,
+	]);
 	sessionIsRunning = false;
-	const outputImage = output[(session as ort.InferenceSession).outputNames[0]];
+	const outputImage = output[outputName];
 
 	// outputImage [1, 1, 320, 320]
 	const outputMask = normMask(outputImage.data as Float32Array);

@@ -8,7 +8,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { MODEL_URL } from "../assets/script/config";
+import { MODEL_SIZE, MODEL_URL } from "../assets/script/config";
 import { getModel, setModel } from "../assets/script/model";
 import { downloadFile } from "../assets/script/utils";
 
@@ -24,8 +24,9 @@ const Download: React.FC = () => {
 				setIsOpen(true);
 				downloadFile({
 					url: MODEL_URL,
+					fallbackSize: MODEL_SIZE,
 					progress: (loaded, total) => {
-						const res = Math.round((loaded / total) * 100);
+						const res = Math.min(100, Math.round((loaded / total) * 100));
 						setProgress(res);
 					},
 					finalCb: (flag, data) => {

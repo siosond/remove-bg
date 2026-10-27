@@ -1,0 +1,19 @@
+u2netp.onnx
+
+This file is the lightweight U²-Net model (U²-Net-P) by Xuebin Qin, Zichen Zhang,
+Chenyang Huang, Masood Dehghan, Osmar R. Zaiane and Martin Jagersand.
+
+  Original project: https://github.com/xuebinqin/U-2-Net
+  License:          Apache License, Version 2.0 (see LICENSE-U2NET in this folder)
+  Paper:            "U2-Net: Going Deeper with Nested U-Structure for Salient
+                    Object Detection", Pattern Recognition 106 (2020) 107404
+
+The ONNX export was obtained, unmodified, from the rembg project's release assets:
+
+  https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2netp.onnx
+  SHA-256: 309c8469258dda742793dce0ebea8e6dd393174f89934733ecc8b14c76f4ddd8
+
+The rest of this repository is licensed under the GNU GPL v3.0 (see LICENSE in the
+repository root). This model file is distributed under its own license, Apache-2.0,
+which is compatible with the GPL v3.0. It is included here as a separate data file
+and is not part of the program's source code.

@@ -2,6 +2,8 @@ import type { Env } from "onnxruntime-web";
 
 interface DownloadParams {
 	url: string;
+	/** Size in bytes to assume when the response doesn't report one. */
+	fallbackSize?: number;
 	progress: (loaded: number, total: number) => void;
 	finalCb: (flag: boolean, data: Error | ArrayBuffer) => void;
 }
@@ -11,7 +13,12 @@ interface IWebCanUse {
 	threads: boolean;
 }
 
-export function downloadFile({ url, progress, finalCb }: DownloadParams) {
+export function downloadFile({
+	url,
+	fallbackSize,
+	progress,
+	finalCb,
+}: DownloadParams) {
 	fetch(url)
 		.then((response) => {
 			if (!response.ok) {
@@ -28,11 +35,14 @@ export function downloadFile({ url, progress, finalCb }: DownloadParams) {
 			const contentLength = response.headers.get(
 				contentEncoding ? "x-file-size" : "content-length",
 			);
-			if (contentLength === null) {
+			if (contentLength === null && !fallbackSize) {
 				throw Error("Response size header unavailable");
 			}
 
-			const total = parseInt(contentLength, 10);
+			const total =
+				contentLength === null
+					? (fallbackSize as number)
+					: parseInt(contentLength, 10);
 			let loaded = 0;
 
 			return new Response(
