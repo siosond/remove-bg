@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { cn } from '@heroui/react';
+import { cn } from '@/lib/utils';
 import { useThrottleFn } from '@reactuses/core';
 import nobg from '../assets/img/nobg.svg';
 

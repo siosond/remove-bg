@@ -17,7 +17,7 @@ const Head: React.FC = () => {
       <div className='flex flex-row'>
         <img className='w-8 mt-1' src={logo} />
         <div className='pl-3 font-bold cursor-default'>
-          <span className='text-accent'>REMOVE</span>-
+          <span className='text-[#195df3]'>REMOVE</span>-
           <span className='text-gray-300'>BG</span>
         </div>
       </div>

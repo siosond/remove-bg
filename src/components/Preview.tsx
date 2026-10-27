@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { Button } from '@heroui/react';
+import { Button } from '@/components/ui/button';
 import * as Slider from 'react-compare-slider/components';
 import { useReactCompareSlider } from 'react-compare-slider/hooks';
 import Background from './Backgound';
@@ -255,17 +255,16 @@ const Preview: React.FC<PreviewComponentProps> = ({
           <div className='mt-5'>
             <Button
               className='w-64 mb-3'
-              variant='primary'
               size='lg'
-              onPress={downloadHandledImage}
+              onClick={downloadHandledImage}
             >
               download
             </Button>
             <Button
-              className='w-64'
-              variant='danger'
+              className='w-64 bg-destructive text-white hover:bg-destructive/90'
+              variant='destructive'
               size='lg'
-              onPress={() => onClick('delete')}
+              onClick={() => onClick('delete')}
             >
               delete
             </Button>

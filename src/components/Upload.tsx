@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Button } from '@heroui/react';
+import { Button } from '@/components/ui/button';
 import corner from '../assets/img/corner.svg';
 
 interface UploadComponentProps {
@@ -95,9 +95,8 @@ const DragDropUpload: React.FC<UploadComponentProps> = ({ onFileChange }) => {
         <input ref={inputRef} type='file' onChange={handleFileChange} hidden />
         <Button
           className='mt-6'
-          variant='primary'
           size='lg'
-          onPress={() => inputRef.current && inputRef.current.click()}
+          onClick={() => inputRef.current && inputRef.current.click()}
         >
           Upload Image
         </Button>
