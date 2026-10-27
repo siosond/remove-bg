@@ -23,7 +23,20 @@ const Head: React.FC = () => {
     <header className='sticky top-0 z-10 border-b bg-background/80 backdrop-blur'>
       <div className='mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-4 sm:px-6'>
         <div className='flex items-center gap-2 font-semibold tracking-tight'>
-          <img className='size-7' src={logo} alt='' />
+          <span
+            aria-hidden='true'
+            className='size-7 bg-primary'
+            style={{
+              maskImage: `url("${logo}")`,
+              maskSize: 'contain',
+              maskRepeat: 'no-repeat',
+              maskPosition: 'center',
+              WebkitMaskImage: `url("${logo}")`,
+              WebkitMaskSize: 'contain',
+              WebkitMaskRepeat: 'no-repeat',
+              WebkitMaskPosition: 'center',
+            }}
+          />
           <span>
             <span className='text-primary'>REMOVE</span>
             <span className='text-muted-foreground'>-BG</span>
