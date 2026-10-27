@@ -1,19 +1,20 @@
 import type React from "react";
 
 interface SectionProps {
-	title: string;
+	description?: string;
 	action?: React.ReactNode;
 	children: React.ReactNode;
 }
 
-const Section: React.FC<SectionProps> = ({ title, action, children }) => (
-	<section className="flex flex-col gap-3">
-		<div className="flex h-6 items-center justify-between">
-			<h3 className="text-sm font-medium">{title}</h3>
+/** The body of one tab: a short description, an optional action, then the controls. */
+const Section: React.FC<SectionProps> = ({ description, action, children }) => (
+	<div className="flex flex-col gap-4">
+		<div className="flex min-h-6 items-center justify-between gap-2">
+			<p className="text-muted-foreground text-xs">{description}</p>
 			{action}
 		</div>
 		{children}
-	</section>
+	</div>
 );
 
 export default Section;

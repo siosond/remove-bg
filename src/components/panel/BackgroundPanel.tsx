@@ -46,7 +46,7 @@ const BackgroundPanel: React.FC<BackgroundPanelProps> = ({
 	};
 
 	return (
-		<Section title="Background">
+		<Section description="Replace what's behind the subject.">
 			<ToggleGroup
 				type="single"
 				variant="outline"

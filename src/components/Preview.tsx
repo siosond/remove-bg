@@ -1,11 +1,10 @@
-import { Check, Download as DownloadIcon, Loader2, Trash2 } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as Slider from "react-compare-slider/components";
 import { useReactCompareSlider } from "react-compare-slider/hooks";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardAction,
@@ -14,8 +13,8 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
 	type Backdrop,
 	type Cutout,
@@ -38,9 +37,9 @@ import {
 	type PreviewSource,
 } from "../assets/script/previewSource";
 import BrushOverlay from "./BrushOverlay";
+import ActionBar from "./panel/ActionBar";
 import BackgroundPanel from "./panel/BackgroundPanel";
 import CutoutPanel from "./panel/CutoutPanel";
-import ExportPanel from "./panel/ExportPanel";
 import TouchUpPanel from "./panel/TouchUpPanel";
 import { useTouchUp } from "./useTouchUp";
 
@@ -62,6 +61,9 @@ const calcCanvasShape: (w: number, h: number) => [number, number] = (w, h) => {
 	}
 	return [canvasWidth, canvasHeight];
 };
+
+// puts every tab body in the same grid cell
+const overlap = "col-start-1 row-start-1";
 
 const loadImage = (url: string) =>
 	new Promise<HTMLImageElement>((resolve, reject) => {
@@ -107,6 +109,7 @@ const Preview: React.FC<PreviewComponentProps> = ({
 	const [backdrop, setBackdrop] = useState<Backdrop>(TRANSPARENT_BACKDROP);
 	const [trim, setTrim] = useState(false);
 	const [saving, setSaving] = useState(false);
+	const [tab, setTab] = useState("cutout");
 	// the full-size result is only used for the export; everything live runs on
 	// a smaller preview copy so big photos stay responsive
 	const sourceRef = useRef<InferenceResult | null>(null);
@@ -281,6 +284,12 @@ const Preview: React.FC<PreviewComponentProps> = ({
 		if (showRemoved) sliderRef.current.setPosition(0);
 	}, [showRemoved]);
 
+	// the brush and the removed-area view only belong on the touch-up tab
+	const handleTab = (next: string) => {
+		setTab(next);
+		if (next !== "touchup") touchUp.setTool("off");
+	};
+
 	const handleChangeBackdrop = (next: Backdrop) => {
 		sliderRef.current.setPosition(0);
 		setBackdrop(next);
@@ -320,8 +329,8 @@ const Preview: React.FC<PreviewComponentProps> = ({
 	};
 
 	return (
-		<div className="grid items-start gap-6 lg:grid-cols-[1fr_20rem]">
-			<Card>
+		<div className="mb-auto grid items-start gap-6 lg:grid-cols-[1fr_20rem]">
+			<Card className="lg:sticky lg:top-20">
 				<CardHeader>
 					<CardTitle className="truncate">{originName}</CardTitle>
 					<CardDescription>
@@ -411,62 +420,56 @@ const Preview: React.FC<PreviewComponentProps> = ({
 				</CardContent>
 			</Card>
 
-			<Card>
-				<CardHeader>
-					<CardTitle>Adjust</CardTitle>
-					<CardDescription>
-						Fine-tune the cutout and pick a backdrop.
-					</CardDescription>
-				</CardHeader>
-				<CardContent className="flex flex-col gap-6">
-					<CutoutPanel
-						adjust={adjust}
-						disabled={status !== "done"}
-						onChange={setAdjust}
-					/>
-					<Separator />
-					<TouchUpPanel
-						tool={touchUp.tool}
-						size={touchUp.size}
-						disabled={status !== "done"}
-						canUndo={touchUp.canUndo}
-						canRedo={touchUp.canRedo}
-						onTool={touchUp.setTool}
-						onSize={touchUp.setSize}
-						onUndo={touchUp.undo}
-						onRedo={touchUp.redo}
-						onClear={touchUp.clear}
-					/>
-					<Separator />
-					<BackgroundPanel
-						backdrop={backdrop}
-						onChange={handleChangeBackdrop}
-					/>
-					<Separator />
-					<ExportPanel
+			<Card className="gap-4 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6.5rem)]">
+				<Tabs value={tab} onValueChange={handleTab} className="min-h-0 flex-1">
+					<CardContent>
+						<TabsList>
+							<TabsTrigger value="cutout">Cutout</TabsTrigger>
+							<TabsTrigger value="touchup">Touch up</TabsTrigger>
+							<TabsTrigger value="background">Background</TabsTrigger>
+						</TabsList>
+					</CardContent>
+					{/* the tab bodies scroll if the window is short; the actions below never do.
+					    All three stay mounted so what you picked survives switching tabs. */}
+					<CardContent className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto">
+						<TabsContent value="cutout" forceMount className={overlap}>
+							<CutoutPanel
+								adjust={adjust}
+								disabled={status !== "done"}
+								onChange={setAdjust}
+							/>
+						</TabsContent>
+						<TabsContent value="touchup" forceMount className={overlap}>
+							<TouchUpPanel
+								tool={touchUp.tool}
+								size={touchUp.size}
+								disabled={status !== "done"}
+								canUndo={touchUp.canUndo}
+								canRedo={touchUp.canRedo}
+								onTool={touchUp.setTool}
+								onSize={touchUp.setSize}
+								onUndo={touchUp.undo}
+								onRedo={touchUp.redo}
+								onClear={touchUp.clear}
+							/>
+						</TabsContent>
+						<TabsContent value="background" forceMount className={overlap}>
+							<BackgroundPanel
+								backdrop={backdrop}
+								onChange={handleChangeBackdrop}
+							/>
+						</TabsContent>
+					</CardContent>
+				</Tabs>
+				<CardContent className="border-t pt-4">
+					<ActionBar
 						trim={trim}
-						disabled={status !== "done"}
+						ready={status === "done"}
+						saving={saving}
 						onChangeTrim={setTrim}
+						onDownload={downloadHandledImage}
+						onStartOver={() => onClick("delete")}
 					/>
-					<Separator />
-					<div className="flex flex-col gap-2">
-						<Button
-							size="lg"
-							disabled={status !== "done" || saving}
-							onClick={downloadHandledImage}
-						>
-							{saving ? <Loader2 className="animate-spin" /> : <DownloadIcon />}
-							Download
-						</Button>
-						<Button
-							variant="destructive"
-							size="lg"
-							onClick={() => onClick("delete")}
-						>
-							<Trash2 />
-							Start over
-						</Button>
-					</div>
 				</CardContent>
 			</Card>
 		</div>

@@ -1,5 +1,6 @@
 import type React from "react";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import {
 	isDefaultAdjust,
 	MAX_FEATHER,
@@ -22,7 +23,7 @@ const CutoutPanel: React.FC<CutoutPanelProps> = ({
 	onChange,
 }) => (
 	<Section
-		title="Cutout"
+		description="Shape the edge of the cutout."
 		action={
 			!isDefaultAdjust(adjust) && (
 				<Button
@@ -63,6 +64,7 @@ const CutoutPanel: React.FC<CutoutPanelProps> = ({
 				disabled={disabled}
 				onChange={(feather) => onChange({ ...adjust, feather })}
 			/>
+			<Separator />
 			<div className="flex flex-col gap-3">
 				<ToggleRow
 					id="cleanup"
