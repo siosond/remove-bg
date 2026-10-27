@@ -7,7 +7,7 @@ export const MAX_FEATHER = 100;
 export interface MaskAdjust {
 	/** how confident the model must be before a pixel is kept */
 	cutoff: number;
-	/** pixels to grow (negative) or shrink (positive) the cutout by */
+	/** pixels to shrink (negative) or grow (positive) the cutout by */
 	edge: number;
 	/** 0 (sharp) to MAX_FEATHER (soft): blurs the edge */
 	feather: number;
@@ -449,7 +449,7 @@ export function baseAlpha(
 		width,
 		height,
 		edgeRadius(edge, width, height),
-		edge > 0 ? "erode" : "dilate",
+		edge > 0 ? "dilate" : "erode",
 	);
 }
 

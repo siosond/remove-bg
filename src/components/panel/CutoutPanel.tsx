@@ -23,7 +23,6 @@ const CutoutPanel: React.FC<CutoutPanelProps> = ({
 	onChange,
 }) => (
 	<Section
-		description="Shape the edge of the cutout."
 		action={
 			!isDefaultAdjust(adjust) && (
 				<Button
@@ -39,23 +38,23 @@ const CutoutPanel: React.FC<CutoutPanelProps> = ({
 	>
 		<div className="flex flex-col gap-4">
 			<AdjustSlider
-				label="Cutoff"
+				label="Removal"
 				value={adjust.cutoff}
-				lowLabel="Keep more"
-				highLabel="Remove more"
+				lowLabel="Less"
+				highLabel="More"
 				disabled={disabled}
 				onChange={(cutoff) => onChange({ ...adjust, cutoff })}
 			/>
 			<AdjustSlider
-				label="Edge"
+				label="Edge size"
 				value={adjust.edge}
-				lowLabel="Grow"
-				highLabel="Shrink"
+				lowLabel="Smaller"
+				highLabel="Larger"
 				disabled={disabled}
 				onChange={(edge) => onChange({ ...adjust, edge })}
 			/>
 			<AdjustSlider
-				label="Feather"
+				label="Edge softness"
 				value={adjust.feather}
 				lowLabel="Sharp"
 				highLabel="Soft"
@@ -68,14 +67,14 @@ const CutoutPanel: React.FC<CutoutPanelProps> = ({
 			<div className="flex flex-col gap-3">
 				<ToggleRow
 					id="cleanup"
-					label="Remove specks and holes"
+					label="Clean up specks and holes"
 					checked={adjust.cleanup}
 					disabled={disabled}
 					onChange={(cleanup) => onChange({ ...adjust, cleanup })}
 				/>
 				<ToggleRow
 					id="largest-only"
-					label="Keep only the largest subject"
+					label="Keep main subject only"
 					checked={adjust.largestOnly}
 					disabled={disabled}
 					onChange={(largestOnly) => onChange({ ...adjust, largestOnly })}

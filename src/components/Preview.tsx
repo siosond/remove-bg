@@ -264,7 +264,7 @@ const Preview: React.FC<PreviewComponentProps> = ({
 				console.error(error);
 				setStatus("error");
 				toast.error("Couldn't remove the background", {
-					description: "Try a different photo.",
+					description: "Try another image.",
 				});
 			});
 	}, [originUrl, paintPreview, fireTransition, resetTouchUp]);
@@ -317,12 +317,12 @@ const Preview: React.FC<PreviewComponentProps> = ({
 				trim,
 			);
 			saveBlob(blob, `${originName}_rbg.png`);
-			toast.success("Saved!", {
+			toast.success("Downloaded", {
 				description: `${originName}_rbg.png`,
 			});
 		} catch (error) {
 			console.error(error);
-			toast.error("Couldn't save the image");
+			toast.error("Couldn't download the image");
 		} finally {
 			setSaving(false);
 		}
@@ -334,24 +334,22 @@ const Preview: React.FC<PreviewComponentProps> = ({
 				<CardHeader>
 					<CardTitle className="truncate">{originName}</CardTitle>
 					<CardDescription>
-						Drag the slider to see before and after.
+						Drag the divider to compare before and after.
 					</CardDescription>
 					<CardAction>
 						{status === "processing" && (
 							<Badge variant="secondary">
 								<Loader2 className="animate-spin" />
-								Working on it
+								Processing
 							</Badge>
 						)}
 						{status === "done" && (
 							<Badge>
 								<Check />
-								Ready
+								Done
 							</Badge>
 						)}
-						{status === "error" && (
-							<Badge variant="destructive">{"Didn't work"}</Badge>
-						)}
+						{status === "error" && <Badge variant="destructive">Failed</Badge>}
 					</CardAction>
 				</CardHeader>
 				<CardContent>
@@ -412,7 +410,7 @@ const Preview: React.FC<PreviewComponentProps> = ({
 								<Skeleton className="absolute inset-0 rounded-none" />
 								<div className="bg-background/90 relative flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium shadow-sm">
 									<Loader2 className="size-4 animate-spin" />
-									Removing the background…
+									Removing background…
 								</div>
 							</div>
 						)}
@@ -425,7 +423,7 @@ const Preview: React.FC<PreviewComponentProps> = ({
 					<CardContent>
 						<TabsList>
 							<TabsTrigger value="cutout">Cutout</TabsTrigger>
-							<TabsTrigger value="touchup">Touch up</TabsTrigger>
+							<TabsTrigger value="touchup">Brush</TabsTrigger>
 							<TabsTrigger value="background">Background</TabsTrigger>
 						</TabsList>
 					</CardContent>

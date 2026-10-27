@@ -46,7 +46,7 @@ const BackgroundPanel: React.FC<BackgroundPanelProps> = ({
 	};
 
 	return (
-		<Section description="Replace what's behind the subject.">
+		<Section>
 			<ToggleGroup
 				type="single"
 				variant="outline"
@@ -70,10 +70,10 @@ const BackgroundPanel: React.FC<BackgroundPanelProps> = ({
 			</div>
 			{mode === "blur" && (
 				<AdjustSlider
-					label="Amount"
+					label="Blur amount"
 					value={blurAmount}
-					lowLabel="Subtle"
-					highLabel="Strong"
+					lowLabel="Less"
+					highLabel="More"
 					min={0}
 					max={MAX_BLUR}
 					disabled={false}

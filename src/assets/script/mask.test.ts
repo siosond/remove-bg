@@ -169,8 +169,8 @@ describe("applyMask", () => {
 		const opaque = (a: Uint8ClampedArray) =>
 			a.filter((_, i) => i % 4 === 3 && a[i] === 255).length;
 		const base = opaque(applyMask(px, half, w, h, NO_ADJUST));
-		const shrunk = applyMask(px, half, w, h, { ...NO_ADJUST, edge: 100 });
-		const grown = applyMask(px, half, w, h, { ...NO_ADJUST, edge: -100 });
+		const grown = applyMask(px, half, w, h, { ...NO_ADJUST, edge: 100 });
+		const shrunk = applyMask(px, half, w, h, { ...NO_ADJUST, edge: -100 });
 		expect(opaque(shrunk)).toBeLessThan(base);
 		expect(opaque(grown)).toBeGreaterThan(base);
 	});

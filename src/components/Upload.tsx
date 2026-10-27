@@ -28,8 +28,8 @@ const DragDropUpload: React.FC<UploadComponentProps> = ({ onFileChange }) => {
 			if (files && files.length > 0) {
 				const file = files[0];
 				if (!file.type.startsWith("image/")) {
-					toast.error("That's not an image", {
-						description: "Try a PNG, JPG, or WebP instead.",
+					toast.error("This file isn't an image", {
+						description: "Use a PNG, JPG or WebP file.",
 					});
 					return;
 				}
@@ -96,10 +96,8 @@ const DragDropUpload: React.FC<UploadComponentProps> = ({ onFileChange }) => {
 		<>
 			<Card className="mx-auto w-full max-w-xl">
 				<CardHeader className="text-center">
-					<CardTitle className="text-2xl">Remove any background</CardTitle>
-					<CardDescription>
-						Free, and your photo never leaves your device.
-					</CardDescription>
+					<CardTitle className="text-2xl">Remove background</CardTitle>
+					<CardDescription>Free. Images stay on your device.</CardDescription>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-6">
 					<div
@@ -112,7 +110,7 @@ const DragDropUpload: React.FC<UploadComponentProps> = ({ onFileChange }) => {
 							<ImageUp className="size-6" />
 						</div>
 						<div className="text-muted-foreground text-sm">
-							Drop a photo here, or
+							Drop an image here, or
 						</div>
 						<input
 							ref={inputRef}
@@ -122,7 +120,7 @@ const DragDropUpload: React.FC<UploadComponentProps> = ({ onFileChange }) => {
 							hidden
 						/>
 						<Button size="lg" onClick={() => inputRef.current?.click()}>
-							Choose a photo
+							Upload image
 						</Button>
 					</div>
 				</CardContent>
@@ -132,7 +130,7 @@ const DragDropUpload: React.FC<UploadComponentProps> = ({ onFileChange }) => {
 			{dragging && (
 				<div className="bg-background/80 pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-6 backdrop-blur-sm">
 					<div className="border-primary flex size-full items-center justify-center rounded-2xl border-2 border-dashed">
-						<h2 className="text-2xl font-semibold">Drop it anywhere</h2>
+						<h2 className="text-2xl font-semibold">Drop image here</h2>
 					</div>
 				</div>
 			)}

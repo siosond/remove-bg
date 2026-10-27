@@ -31,7 +31,7 @@ const TouchUpPanel: React.FC<TouchUpPanelProps> = ({
 	onRedo,
 	onClear,
 }) => (
-	<Section description="Pick a brush, then paint on the photo to fix what the cutout got wrong.">
+	<Section>
 		<ToggleGroup
 			type="single"
 			variant="outline"

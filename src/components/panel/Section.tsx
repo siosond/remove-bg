@@ -1,18 +1,19 @@
 import type React from "react";
 
 interface SectionProps {
-	description?: string;
 	action?: React.ReactNode;
 	children: React.ReactNode;
 }
 
-/** The body of one tab: a short description, an optional action, then the controls. */
-const Section: React.FC<SectionProps> = ({ description, action, children }) => (
+/**
+ * The body of one tab. When `action` is passed, even as `false`, a fixed-height
+ * row above the controls holds it, so showing or hiding it moves nothing.
+ */
+const Section: React.FC<SectionProps> = ({ action, children }) => (
 	<div className="flex flex-col gap-4">
-		<div className="flex min-h-6 items-center justify-between gap-2">
-			<p className="text-muted-foreground text-xs">{description}</p>
-			{action}
-		</div>
+		{action !== undefined && (
+			<div className="flex min-h-6 items-center justify-end">{action}</div>
+		)}
 		{children}
 	</div>
 );

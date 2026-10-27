@@ -43,7 +43,7 @@ test("renders the header and the upload screen", () => {
 	renderApp();
 	expect(screen.getByText("remove")).toBeInTheDocument();
 	expect(
-		screen.getByRole("button", { name: "Choose a photo" }),
+		screen.getByRole("button", { name: "Upload image" }),
 	).toBeInTheDocument();
 });
 
@@ -52,9 +52,11 @@ test("rejects files that are not images", async () => {
 	const input = container.querySelector("input[type=file]") as HTMLInputElement;
 	const file = new File(["hello"], "notes.txt", { type: "text/plain" });
 	fireEvent.change(input, { target: { files: [file] } });
-	expect(await screen.findByText("That's not an image")).toBeInTheDocument();
 	expect(
-		screen.getByRole("button", { name: "Choose a photo" }),
+		await screen.findByText("This file isn't an image"),
+	).toBeInTheDocument();
+	expect(
+		screen.getByRole("button", { name: "Upload image" }),
 	).toBeInTheDocument();
 });
 

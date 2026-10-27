@@ -1,4 +1,4 @@
-import { Download as DownloadIcon, Loader2, Trash2 } from "lucide-react";
+import { Download as DownloadIcon, ImagePlus, Loader2 } from "lucide-react";
 import type React from "react";
 import { Button } from "@/components/ui/button";
 import ToggleRow from "./ToggleRow";
@@ -24,7 +24,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
 	<div className="flex flex-col gap-3">
 		<ToggleRow
 			id="trim"
-			label="Trim empty space"
+			label="Crop to subject"
 			checked={trim}
 			disabled={!ready}
 			onChange={onChangeTrim}
@@ -34,9 +34,9 @@ const ActionBar: React.FC<ActionBarProps> = ({
 				{saving ? <Loader2 className="animate-spin" /> : <DownloadIcon />}
 				Download
 			</Button>
-			<Button variant="destructive" size="lg" onClick={onStartOver}>
-				<Trash2 />
-				Start over
+			<Button variant="outline" size="lg" onClick={onStartOver}>
+				<ImagePlus />
+				New image
 			</Button>
 		</div>
 	</div>
