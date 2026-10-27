@@ -23,10 +23,20 @@ import {
 	exportImage,
 	makeCutout,
 	TRANSPARENT_BACKDROP,
+	updateCutoutAlpha,
 } from "../assets/script/composite";
 import type { InferenceResult } from "../assets/script/inference";
-import { renderResult, runModel } from "../assets/script/inference";
+import {
+	renderAlpha,
+	renderResult,
+	runModel,
+} from "../assets/script/inference";
 import { type MaskAdjust, NO_ADJUST } from "../assets/script/mask";
+import {
+	makePreviewSource,
+	PREVIEW_MAX_SIDE,
+	type PreviewSource,
+} from "../assets/script/previewSource";
 import BrushOverlay from "./BrushOverlay";
 import BackgroundPanel from "./panel/BackgroundPanel";
 import CutoutPanel from "./panel/CutoutPanel";
@@ -96,21 +106,27 @@ const Preview: React.FC<PreviewComponentProps> = ({
 	const [adjust, setAdjust] = useState<MaskAdjust>(NO_ADJUST);
 	const [backdrop, setBackdrop] = useState<Backdrop>(TRANSPARENT_BACKDROP);
 	const [trim, setTrim] = useState(false);
-	const resultRef = useRef<InferenceResult | null>(null);
+	const [saving, setSaving] = useState(false);
+	// the full-size result is only used for the export; everything live runs on
+	// a smaller preview copy so big photos stay responsive
+	const sourceRef = useRef<InferenceResult | null>(null);
+	const previewRef = useRef<PreviewSource | null>(null);
 	const cutoutRef = useRef<Cutout | null>(null);
 	const originalRef = useRef<HTMLImageElement | null>(null);
-	const renderedAdjustRef = useRef(NO_ADJUST);
-	const renderedVersionRef = useRef(-1);
 	const originUrlRef = useRef(originUrl);
-	const touchUp = useTouchUp();
-	const { reset: resetTouchUp, version: paintVersion, paintRef } = touchUp;
+	const frameRef = useRef(0);
+	const scheduleRef = useRef<() => void>(() => {});
+	const touchUp = useTouchUp(() => scheduleRef.current());
+	const { reset: resetTouchUp, paintRef } = touchUp;
 	const showRemoved = touchUp.tool !== "off";
 
+	const adjustRef = useRef(adjust);
 	const backdropRef = useRef(backdrop);
 	const showRemovedRef = useRef(showRemoved);
 
 	useEffect(() => {
 		sliderRef.current = slider;
+		adjustRef.current = adjust;
 		backdropRef.current = backdrop;
 		showRemovedRef.current = showRemoved;
 	});
@@ -153,12 +169,47 @@ const Preview: React.FC<PreviewComponentProps> = ({
 				ctx,
 				canvas.width,
 				canvas.height,
-				{ cutout, original: originalRef.current, showRemoved: removed },
+				{
+					cutout,
+					original: previewRef.current?.original ?? null,
+					showRemoved: removed,
+					quality: "low",
+				},
 				target,
 			);
 		},
 		[],
 	);
+
+	// recompute the preview's alpha from the cached mask, with no model run and
+	// no allocation beyond the alpha itself
+	const renderNow = useCallback(() => {
+		const preview = previewRef.current;
+		const cutout = cutoutRef.current;
+		if (!preview || !cutout) return;
+		updateCutoutAlpha(
+			cutout,
+			renderAlpha(preview, adjustRef.current, paintRef.current),
+		);
+		paintPreview();
+	}, [paintPreview, paintRef]);
+
+	// many strokes or slider moves in one frame cost a single render
+	const scheduleRender = useCallback(() => {
+		if (frameRef.current) return;
+		frameRef.current = requestAnimationFrame(() => {
+			frameRef.current = 0;
+			renderNow();
+		});
+	}, [renderNow]);
+
+	useEffect(() => {
+		scheduleRef.current = scheduleRender;
+		return () => {
+			cancelAnimationFrame(frameRef.current);
+			frameRef.current = 0;
+		};
+	}, [scheduleRender]);
 
 	useEffect(() => {
 		originUrlRef.current = originUrl;
@@ -185,14 +236,24 @@ const Preview: React.FC<PreviewComponentProps> = ({
 		runModel(originUrl)
 			.then((res) => {
 				if (!res || originUrlRef.current !== originUrl) return;
-				resultRef.current = res;
-				renderedAdjustRef.current = NO_ADJUST;
-				cutoutRef.current = makeCutout(
-					renderResult(res, NO_ADJUST),
-					res.width,
-					res.height,
+				// a little more than the canvas shows is plenty to work at
+				const shown = Math.max(
+					canvasRef.current?.width ?? 0,
+					canvasRef.current?.height ?? 0,
 				);
-				resetTouchUp(res.width, res.height);
+				const preview = makePreviewSource(
+					res,
+					Math.min(Math.max(Math.ceil(shown * 1.5), 640), PREVIEW_MAX_SIDE),
+				);
+				sourceRef.current = res;
+				previewRef.current = preview;
+				// renderResult hands back a private copy, which the cutout then edits
+				cutoutRef.current = makeCutout(
+					renderResult(preview, NO_ADJUST),
+					preview.width,
+					preview.height,
+				);
+				resetTouchUp(preview.width, preview.height);
 				setStatus("done");
 				fireTransition();
 			})
@@ -205,30 +266,10 @@ const Preview: React.FC<PreviewComponentProps> = ({
 			});
 	}, [originUrl, paintPreview, fireTransition, resetTouchUp]);
 
-	// re-apply the cached mask when a slider moves or a stroke is painted,
-	// without re-running the model
+	// a slider or toggle moved
 	useEffect(() => {
-		const result = resultRef.current;
-		if (
-			status !== "done" ||
-			!result ||
-			(adjust === renderedAdjustRef.current &&
-				paintVersion === renderedVersionRef.current)
-		) {
-			return;
-		}
-		const frame = requestAnimationFrame(() => {
-			cutoutRef.current = makeCutout(
-				renderResult(result, adjust, paintRef.current),
-				result.width,
-				result.height,
-			);
-			renderedAdjustRef.current = adjust;
-			renderedVersionRef.current = paintVersion;
-			paintPreview();
-		});
-		return () => cancelAnimationFrame(frame);
-	}, [adjust, paintVersion, paintRef, status, paintPreview]);
+		if (status === "done" && adjust) scheduleRender();
+	}, [adjust, status, scheduleRender]);
 
 	// the cutout is ready, or the backdrop or the removed-area view changed
 	useEffect(() => {
@@ -246,9 +287,21 @@ const Preview: React.FC<PreviewComponentProps> = ({
 	};
 
 	const downloadHandledImage = async () => {
-		const cutout = cutoutRef.current;
-		if (!cutout) return;
+		const full = sourceRef.current;
+		if (!full || saving) return;
+		setSaving(true);
 		try {
+			// let the button show it's busy before the full-size work starts
+			await new Promise((resolve) => setTimeout(resolve, 30));
+			const cutout = makeCutout(
+				renderResult(
+					full,
+					adjustRef.current,
+					touchUp.exportPaint(full.width, full.height),
+				),
+				full.width,
+				full.height,
+			);
 			const blob = await exportImage(
 				{ cutout, original: originalRef.current },
 				backdrop,
@@ -261,6 +314,8 @@ const Preview: React.FC<PreviewComponentProps> = ({
 		} catch (error) {
 			console.error(error);
 			toast.error("Couldn't save the image");
+		} finally {
+			setSaving(false);
 		}
 	};
 
@@ -332,10 +387,10 @@ const Preview: React.FC<PreviewComponentProps> = ({
 							</Slider.Root>
 						</Slider.Provider>
 
-						{status === "done" && showRemoved && resultRef.current && (
+						{status === "done" && showRemoved && previewRef.current && (
 							<BrushOverlay
-								width={resultRef.current.width}
-								height={resultRef.current.height}
+								width={previewRef.current.width}
+								height={previewRef.current.height}
 								radius={touchUp.radius()}
 								onBegin={touchUp.begin}
 								onMove={touchUp.move}
@@ -397,10 +452,10 @@ const Preview: React.FC<PreviewComponentProps> = ({
 					<div className="flex flex-col gap-2">
 						<Button
 							size="lg"
-							disabled={status !== "done"}
+							disabled={status !== "done" || saving}
 							onClick={downloadHandledImage}
 						>
-							<DownloadIcon />
+							{saving ? <Loader2 className="animate-spin" /> : <DownloadIcon />}
 							Download
 						</Button>
 						<Button

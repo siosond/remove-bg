@@ -70,25 +70,31 @@ export function stampSegment(
 	}
 }
 
-/** Replays `strokes` in order onto a fresh touch-up layer. */
+/**
+ * Replays `strokes` in order onto a fresh touch-up layer. `scale` maps the
+ * coordinates the strokes were drawn in onto this layer's size.
+ */
 export function rasterizeStrokes(
 	width: number,
 	height: number,
 	strokes: Stroke[],
+	scale = 1,
 ) {
 	const paint = new Uint8Array(width * height);
-	for (const { value, radius, points } of strokes) {
+	for (const { value, points, radius: drawnRadius } of strokes) {
 		if (points.length < 2) continue;
-		stampCircle(paint, width, height, points[0], points[1], radius, value);
+		const radius = Math.max(1, drawnRadius * scale);
+		const at = (i: number) => points[i] * scale;
+		stampCircle(paint, width, height, at(0), at(1), radius, value);
 		for (let i = 2; i < points.length; i += 2) {
 			stampSegment(
 				paint,
 				width,
 				height,
-				points[i - 2],
-				points[i - 1],
-				points[i],
-				points[i + 1],
+				at(i - 2),
+				at(i - 1),
+				at(i),
+				at(i + 1),
 				radius,
 				value,
 			);

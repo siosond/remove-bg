@@ -5,12 +5,16 @@ import {
 	boxBlur,
 	buildAlphaLut,
 	cleanMask,
+	composeAlpha,
+	composeAlphaOnly,
+	downscaleMask,
 	edgeRadius,
 	feather,
 	featherRadius,
 	isDefaultAdjust,
 	morphMask,
 	NO_ADJUST,
+	previewSize,
 } from "./mask";
 
 /** A width x height mask with a solid rectangle (x0..x1, y0..y1, exclusive). */
@@ -389,5 +393,78 @@ describe("alphaBounds", () => {
 			width: w,
 			height: h,
 		});
+	});
+});
+
+describe("previewSize", () => {
+	it("leaves small images alone", () => {
+		expect(previewSize(800, 600, 1280)).toEqual({ width: 800, height: 600 });
+		expect(previewSize(1280, 720, 1280)).toEqual({ width: 1280, height: 720 });
+	});
+
+	it("shrinks the longer side to the limit and keeps the shape", () => {
+		expect(previewSize(4000, 3000, 1280)).toEqual({ width: 1280, height: 960 });
+		expect(previewSize(3000, 4000, 1280)).toEqual({ width: 960, height: 1280 });
+	});
+
+	it("never goes below one pixel", () => {
+		expect(previewSize(10000, 1, 100)).toEqual({ width: 100, height: 1 });
+	});
+});
+
+describe("downscaleMask", () => {
+	it("returns the input at the same size", () => {
+		const mask = Uint8Array.from([1, 2, 3, 4]);
+		expect(downscaleMask(mask, 2, 2, 2, 2)).toBe(mask);
+	});
+
+	it("keeps a flat mask flat", () => {
+		const flat = new Uint8Array(40 * 30).fill(200);
+		const out = downscaleMask(flat, 40, 30, 10, 8);
+		expect(out.length).toBe(80);
+		expect(out.every((v) => v === 200)).toBe(true);
+	});
+
+	it("keeps the layout of a half-and-half mask", () => {
+		// the edge sits between two of the sample points, so one is blended
+		const half = blob(40, 40, [18, 0, 40, 40]);
+		const out = downscaleMask(half, 40, 40, 10, 10);
+		expect(out[5 * 10 + 1]).toBe(0);
+		expect(out[5 * 10 + 8]).toBe(255);
+		expect(out.some((v) => v > 0 && v < 255)).toBe(true);
+	});
+
+	it("keeps a gradient in order", () => {
+		const ramp = Uint8Array.from({ length: 64 * 4 }, (_, i) => (i % 64) * 4);
+		const out = downscaleMask(ramp, 64, 4, 16, 1);
+		for (let x = 1; x < 16; x++)
+			expect(out[x]).toBeGreaterThanOrEqual(out[x - 1]);
+		expect(out[0]).toBeLessThan(20);
+		expect(out[15]).toBeGreaterThan(230);
+	});
+});
+
+describe("composeAlphaOnly", () => {
+	it("matches the alpha channel of composeAlpha", () => {
+		const w = 30;
+		const h = 20;
+		const base = blob(w, h, [5, 5, 25, 15]);
+		const paint = new Uint8Array(w * h);
+		paint[10 * w + 10] = 2;
+		paint[2 * w + 2] = 1;
+		const rgba = new Uint8ClampedArray(w * h * 4).fill(9);
+		for (const softness of [0, 60]) {
+			const alpha = composeAlphaOnly(base, paint, w, h, softness);
+			const full = composeAlpha(rgba, base, paint, w, h, softness);
+			for (let i = 0; i < w * h; i++) expect(full[4 * i + 3]).toBe(alpha[i]);
+		}
+	});
+
+	it("does not change its inputs", () => {
+		const base = blob(10, 10, [2, 2, 8, 8]);
+		const copy = new Uint8Array(base);
+		const paint = new Uint8Array(100).fill(2);
+		composeAlphaOnly(base, paint, 10, 10, 50);
+		expect(base).toEqual(copy);
 	});
 });

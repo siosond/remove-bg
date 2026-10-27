@@ -12,23 +12,25 @@ export type Tool = "off" | "erase" | "restore";
 
 /**
  * The touch-up layer: what the user has painted in or out of the cutout, plus
- * undo and redo. The layer lives in a ref so painting doesn't re-render per
- * pixel; `version` changes whenever it does.
+ * undo and redo. The layer lives in a ref and `onPaint` is called whenever it
+ * changes, so painting never re-renders React per pointer move. Strokes are
+ * recorded at the size `reset` was given, which is the preview's size.
  */
-export function useTouchUp() {
+export function useTouchUp(onPaint: () => void) {
 	const [tool, setTool] = useState<Tool>("off");
 	const [size, setSize] = useState(20);
-	const [version, setVersion] = useState(0);
 	const [depth, setDepth] = useState({ undo: 0, redo: 0 });
 	const paintRef = useRef<Uint8Array | null>(null);
 	const dimsRef = useRef({ width: 0, height: 0 });
 	const strokesRef = useRef<Stroke[]>([]);
 	const redoRef = useRef<Stroke[]>([]);
 	const currentRef = useRef<Stroke | null>(null);
+	const onPaintRef = useRef(onPaint);
+	onPaintRef.current = onPaint;
 
 	const changed = useCallback(() => {
-		setVersion((v) => v + 1);
 		setDepth({ undo: strokesRef.current.length, redo: redoRef.current.length });
+		onPaintRef.current();
 	}, []);
 
 	const rebuild = useCallback(() => {
@@ -36,6 +38,15 @@ export function useTouchUp() {
 		paintRef.current = rasterizeStrokes(width, height, strokesRef.current);
 		changed();
 	}, [changed]);
+
+	/** The touch-up layer at the size of the full photo, for the export. */
+	const exportPaint = (width: number, height: number) =>
+		rasterizeStrokes(
+			width,
+			height,
+			strokesRef.current,
+			width / (dimsRef.current.width || width),
+		);
 
 	/** Starts a blank layer for an image of this size. */
 	const reset = useCallback(
@@ -85,7 +96,7 @@ export function useTouchUp() {
 			stroke.value,
 		);
 		stroke.points.push(x, y);
-		setVersion((v) => v + 1);
+		onPaintRef.current();
 	};
 
 	const end = () => {
@@ -121,12 +132,11 @@ export function useTouchUp() {
 		setTool,
 		size,
 		setSize,
-		version,
 		paintRef,
 		canUndo: depth.undo > 0,
 		canRedo: depth.redo > 0,
-		hasStrokes: depth.undo > 0,
 		radius,
+		exportPaint,
 		reset,
 		begin,
 		move,

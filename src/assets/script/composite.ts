@@ -26,6 +26,9 @@ export interface Cutout {
 	rgba: Uint8ClampedArray;
 	/** the same pixels on a canvas, so they can be drawn at any size */
 	canvas: CanvasType;
+	/** views `rgba`, kept so repainting doesn't allocate */
+	imageData: ImageData;
+	context: Context2D;
 }
 
 export interface Scene {
@@ -34,6 +37,8 @@ export interface Scene {
 	original: CanvasImageSource | null;
 	/** preview only: ghost in what was cut out, tinted red */
 	showRemoved?: boolean;
+	/** how carefully scaled draws are smoothed; the live preview trades it for speed */
+	quality?: ImageSmoothingQuality;
 }
 
 export function makeCutout(
@@ -42,13 +47,26 @@ export function makeCutout(
 	height: number,
 ): Cutout {
 	const canvas = createCanvas(width, height);
-	const ctx = canvas.getContext("2d") as Context2D;
-	ctx.putImageData(
-		new ImageData(rgba as Uint8ClampedArray<ArrayBuffer>, width, height),
-		0,
-		0,
+	const context = canvas.getContext("2d") as Context2D;
+	const imageData = new ImageData(
+		rgba as Uint8ClampedArray<ArrayBuffer>,
+		width,
+		height,
 	);
-	return { width, height, rgba, canvas };
+	context.putImageData(imageData, 0, 0);
+	return { width, height, rgba, canvas, imageData, context };
+}
+
+/**
+ * Swaps in a new alpha channel without allocating. `cutout.rgba` is changed in
+ * place, so it must be a copy that nothing else reads.
+ */
+export function updateCutoutAlpha(cutout: Cutout, alpha: Uint8Array) {
+	const { rgba, context, imageData } = cutout;
+	for (let i = 0; i < alpha.length; i++) {
+		rgba[4 * i + 3] = alpha[i];
+	}
+	context.putImageData(imageData, 0, 0);
 }
 
 function drawBlurred(
@@ -102,9 +120,10 @@ export function drawComposite(
 	ctx: Context2D,
 	width: number,
 	height: number,
-	{ cutout, original, showRemoved }: Scene,
+	{ cutout, original, showRemoved, quality = "high" }: Scene,
 	backdrop: Backdrop,
 ) {
+	if (!width || !height) return;
 	ctx.clearRect(0, 0, width, height);
 	if (backdrop.kind === "color") {
 		ctx.fillStyle = backdrop.color;
@@ -112,13 +131,14 @@ export function drawComposite(
 	} else if (backdrop.kind === "blur" && original) {
 		drawBlurred(ctx, width, height, original, backdrop.amount);
 	}
-	ctx.imageSmoothingQuality = "high";
+	ctx.imageSmoothingQuality = quality;
 	if (showRemoved && original) {
 		// red wherever the cutout isn't, over a faint copy of the photo
 		const tint = createCanvas(width, height);
 		const tintCtx = tint.getContext("2d") as Context2D;
 		tintCtx.fillStyle = "rgba(239, 68, 68, 0.55)";
 		tintCtx.fillRect(0, 0, width, height);
+		tintCtx.imageSmoothingQuality = quality;
 		tintCtx.globalCompositeOperation = "destination-out";
 		tintCtx.drawImage(cutout.canvas, 0, 0, width, height);
 

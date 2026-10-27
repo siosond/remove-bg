@@ -92,6 +92,19 @@ describe("rasterizeStrokes", () => {
 		expect(rasterizeStrokes(60, 60, [])).toEqual(new Uint8Array(60 * 60));
 	});
 
+	it("scales points and radius onto a bigger layer", () => {
+		const small = rasterizeStrokes(60, 60, strokes);
+		const big = rasterizeStrokes(120, 120, strokes, 2);
+		// the stroke centre and the restore dot land at double the coordinates
+		expect(big[20 * 120 + 40]).toBe(PAINT_ERASE);
+		expect(big[100 * 120 + 100]).toBe(PAINT_RESTORE);
+		expect(big[80 * 120 + 80]).toBe(0);
+		// roughly four times the area at twice the size
+		const ratio = count(big, PAINT_ERASE) / count(small, PAINT_ERASE);
+		expect(ratio).toBeGreaterThan(3);
+		expect(ratio).toBeLessThan(5);
+	});
+
 	it("ignores empty strokes", () => {
 		const paint = rasterizeStrokes(10, 10, [
 			{ value: PAINT_ERASE, radius: 2, points: [] },

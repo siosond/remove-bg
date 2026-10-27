@@ -1,7 +1,12 @@
 import type { NdArray } from "ndarray";
 import ndarray from "ndarray";
 import * as ort from "onnxruntime-web/webgpu";
-import { baseAlpha, composeAlpha, type MaskAdjust } from "./mask";
+import {
+	baseAlpha,
+	composeAlpha,
+	composeAlphaOnly,
+	type MaskAdjust,
+} from "./mask";
 import { getModel } from "./model";
 import { getWebCanUse, setOrtEnv } from "./utils";
 
@@ -251,15 +256,7 @@ const baseCache = new WeakMap<
 	{ key: string; alpha: Uint8Array }
 >();
 
-/**
- * The source pixels with the mask, shaped by `adjust` and the touch-up layer, as
- * their alpha. The slow steps are cached, so painting and feathering stay fast.
- */
-export function renderResult(
-	result: InferenceResult,
-	adjust: MaskAdjust,
-	paint: Uint8Array | null = null,
-) {
+function cachedBase(result: InferenceResult, adjust: MaskAdjust) {
 	const key = baseKey(adjust);
 	let base = baseCache.get(result);
 	if (!base || base.key !== key) {
@@ -269,9 +266,37 @@ export function renderResult(
 		};
 		baseCache.set(result, base);
 	}
+	return base.alpha;
+}
+
+/**
+ * The alpha channel for `result`, shaped by `adjust` and the touch-up layer. The
+ * slow steps are cached, so painting and feathering stay fast. Don't change the
+ * returned array.
+ */
+export function renderAlpha(
+	result: InferenceResult,
+	adjust: MaskAdjust,
+	paint: Uint8Array | null = null,
+) {
+	return composeAlphaOnly(
+		cachedBase(result, adjust),
+		paint,
+		result.width,
+		result.height,
+		adjust.feather,
+	);
+}
+
+/** The source pixels with `renderAlpha` as their alpha channel. */
+export function renderResult(
+	result: InferenceResult,
+	adjust: MaskAdjust,
+	paint: Uint8Array | null = null,
+) {
 	return composeAlpha(
 		result.rgba,
-		base.alpha,
+		cachedBase(result, adjust),
 		paint,
 		result.width,
 		result.height,

@@ -168,37 +168,67 @@ export function boxBlur(
 	radius: number,
 ) {
 	if (radius <= 0) return mask;
-	const win = 2 * radius + 1;
-
-	const pass = (
-		src: Uint8Array,
-		dst: Uint8Array,
-		lines: number,
-		length: number,
-		lineStep: number,
-		step: number,
-	) => {
-		const last = length - 1;
-		for (let l = 0; l < lines; l++) {
-			const base = l * lineStep;
-			let sum = 0;
-			for (let k = -radius; k <= radius; k++) {
-				sum += src[base + Math.min(Math.max(k, 0), last) * step];
-			}
-			for (let i = 0; i < length; i++) {
-				dst[base + i * step] = Math.round(sum / win);
-				sum +=
-					src[base + Math.min(i + radius + 1, last) * step] -
-					src[base + Math.max(i - radius, 0) * step];
-			}
-		}
-	};
-
-	const tmp = new Uint8Array(mask.length);
 	const out = new Uint8Array(mask.length);
-	pass(mask, tmp, height, width, width, 1);
-	pass(tmp, out, width, height, 1, width);
+	boxBlurInto(mask, out, new Uint8Array(mask.length), width, height, radius);
 	return out;
+}
+
+/**
+ * `boxBlur` into `dst`, using `tmp` as scratch space, so a caller blurring more
+ * than once can reuse its buffers. `src` is left alone.
+ */
+function boxBlurInto(
+	src: Uint8Array,
+	dst: Uint8Array,
+	tmp: Uint8Array,
+	width: number,
+	height: number,
+	radius: number,
+) {
+	const win = 2 * radius + 1;
+	// round(sum / win), halves rounding up, for every sum a window can reach;
+	// a lookup is much cheaper than dividing for every pixel
+	const average = new Uint8Array(255 * win + 1);
+	for (let sum = 0; sum < average.length; sum++) {
+		average[sum] = Math.floor((2 * sum + win) / (2 * win));
+	}
+
+	// along each row, with a running sum
+	const lastX = width - 1;
+	for (let y = 0; y < height; y++) {
+		const base = y * width;
+		let sum = 0;
+		for (let k = -radius; k <= radius; k++) {
+			sum += src[base + (k < 0 ? 0 : Math.min(k, lastX))];
+		}
+		for (let x = 0; x < width; x++) {
+			tmp[base + x] = average[sum];
+			const add = x + radius + 1;
+			const drop = x - radius;
+			sum += src[base + Math.min(add, lastX)] - src[base + Math.max(drop, 0)];
+		}
+	}
+
+	// down each column, one row at a time so memory is read in order
+	const lastY = height - 1;
+	const columns = new Int32Array(width);
+	for (let k = -radius; k <= radius; k++) {
+		const base = (k < 0 ? 0 : Math.min(k, lastY)) * width;
+		for (let x = 0; x < width; x++) columns[x] += tmp[base + x];
+	}
+	for (let y = 0; y < height; y++) {
+		const base = y * width;
+		for (let x = 0; x < width; x++) {
+			dst[base + x] = average[columns[x]];
+		}
+		const add = y + radius + 1;
+		const drop = y - radius;
+		const addBase = Math.min(add, lastY) * width;
+		const dropBase = Math.max(drop, 0) * width;
+		for (let x = 0; x < width; x++) {
+			columns[x] += tmp[addBase + x] - tmp[dropBase + x];
+		}
+	}
 }
 
 /** Three box blurs in a row, which come close to a Gaussian blur. */
@@ -208,11 +238,16 @@ export function feather(
 	height: number,
 	radius: number,
 ) {
-	let out = mask;
-	for (let i = 0; i < 3 && radius > 0; i++) {
-		out = boxBlur(out, width, height, radius);
+	if (radius <= 0) return mask;
+	let from = new Uint8Array(mask.length);
+	let to = new Uint8Array(mask.length);
+	const scratch = new Uint8Array(mask.length);
+	boxBlurInto(mask, from, scratch, width, height, radius);
+	for (let pass = 1; pass < 3; pass++) {
+		boxBlurInto(from, to, scratch, width, height, radius);
+		[from, to] = [to, from];
 	}
-	return out;
+	return from;
 }
 
 /**
@@ -354,6 +389,46 @@ export function alphaBounds(
 	};
 }
 
+/** The size to work at so the longer side is at most `maxSide` pixels. */
+export function previewSize(width: number, height: number, maxSide: number) {
+	const scale = Math.min(1, maxSide / Math.max(width, height));
+	return {
+		width: Math.max(1, Math.round(width * scale)),
+		height: Math.max(1, Math.round(height * scale)),
+	};
+}
+
+/** Bilinear resize of a one-byte-per-pixel mask. */
+export function downscaleMask(
+	mask: Uint8Array,
+	width: number,
+	height: number,
+	newWidth: number,
+	newHeight: number,
+) {
+	if (newWidth === width && newHeight === height) return mask;
+	const out = new Uint8Array(newWidth * newHeight);
+	const scaleX = width / newWidth;
+	const scaleY = height / newHeight;
+	for (let y = 0; y < newHeight; y++) {
+		const srcY = Math.min(Math.max((y + 0.5) * scaleY - 0.5, 0), height - 1);
+		const y0 = Math.floor(srcY);
+		const y1 = Math.min(y0 + 1, height - 1);
+		const dy = srcY - y0;
+		for (let x = 0; x < newWidth; x++) {
+			const srcX = Math.min(Math.max((x + 0.5) * scaleX - 0.5, 0), width - 1);
+			const x0 = Math.floor(srcX);
+			const x1 = Math.min(x0 + 1, width - 1);
+			const dx = srcX - x0;
+			const top = mask[y0 * width + x0] * (1 - dx) + mask[y0 * width + x1] * dx;
+			const bottom =
+				mask[y1 * width + x0] * (1 - dx) + mask[y1 * width + x1] * dx;
+			out[y * newWidth + x] = Math.round(top * (1 - dy) + bottom * dy);
+		}
+	}
+	return out;
+}
+
 /** Everything before the touch-up layer: the cutoff curve, cleanup and edge. */
 export function baseAlpha(
 	mask: Uint8Array,
@@ -379,12 +454,11 @@ export function baseAlpha(
 }
 
 /**
- * Lays the touch-up layer over `base`, feathers the result and returns a copy of
- * `rgba` with it as the alpha channel. Painted pixels are exactly as drawn, so
- * the feather softens their edges too.
+ * Lays the touch-up layer over `base` and feathers the result. Painted pixels
+ * are exactly as drawn, so the feather softens their edges too. May return
+ * `base` itself when there is nothing to do, so don't change the result.
  */
-export function composeAlpha(
-	rgba: Uint8ClampedArray,
+export function composeAlphaOnly(
 	base: Uint8Array,
 	paint: Uint8Array | null,
 	width: number,
@@ -399,7 +473,19 @@ export function composeAlpha(
 			else if (paint[i] === PAINT_ERASE) alpha[i] = 0;
 		}
 	}
-	alpha = feather(alpha, width, height, featherRadius(softness, width, height));
+	return feather(alpha, width, height, featherRadius(softness, width, height));
+}
+
+/** Returns a copy of `rgba` with the result of `composeAlphaOnly` as its alpha. */
+export function composeAlpha(
+	rgba: Uint8ClampedArray,
+	base: Uint8Array,
+	paint: Uint8Array | null,
+	width: number,
+	height: number,
+	softness: number,
+) {
+	const alpha = composeAlphaOnly(base, paint, width, height, softness);
 
 	const out = new Uint8ClampedArray(rgba);
 	for (let i = 0; i < alpha.length; i++) {
