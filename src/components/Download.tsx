@@ -53,23 +53,22 @@ const Download: React.FC = () => {
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle>Notes</DialogTitle>
-          <DialogDescription className='sr-only'>
-            Downloading the background removal model
+          <DialogTitle>Preparing the model</DialogTitle>
+          <DialogDescription>
+            {downloadFailed ? (
+              <span className='text-destructive'>
+                Download failed, please refresh and try again.
+              </span>
+            ) : (
+              'Downloading a model file of approximately 5MB. Please be patient.'
+            )}
           </DialogDescription>
         </DialogHeader>
-        <div className='pb-4'>
-          {!downloadFailed && (
-            <div className='pb-2'>
-              Downloading a model file of approximately 5MB. Please be patient.
-            </div>
-          )}
-          {downloadFailed && (
-            <div className='text-red-600 pb-2'>
-              Download failed, please refresh and try again.
-            </div>
-          )}
+        <div className='flex flex-col gap-2'>
           <Progress value={progress} />
+          <span className='text-right text-xs text-muted-foreground'>
+            {progress}%
+          </span>
         </div>
       </DialogContent>
     </Dialog>

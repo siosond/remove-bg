@@ -1,143 +1,185 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { ImageUp } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import corner from '../assets/img/corner.svg';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 interface UploadComponentProps {
   onFileChange: (dataUrl: string, imgName: string) => void;
 }
 
 const exampleImages = [
-  '/example/girl.jpg',
-  '/example/car.jpg',
-  '/example/horse.jpg',
-  '/example/plant.jpg',
+  { src: '/example/girl.jpg', label: 'Portrait' },
+  { src: '/example/car.jpg', label: 'Car' },
+  { src: '/example/horse.jpg', label: 'Horse' },
+  { src: '/example/plant.jpg', label: 'Plant' },
 ];
 
+const hasFiles = (event: DragEvent) =>
+  Array.from(event.dataTransfer?.types ?? []).includes('Files');
+
 const DragDropUpload: React.FC<UploadComponentProps> = ({ onFileChange }) => {
-  /* const [uploadedFiles, setUploadedFiles] = useState<FileListState>({
-    files: [],
-    previewImage: undefined,
-  }); */
   const [dragging, setDragging] = useState<boolean>(false);
-  const dropZoneRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleSelectedImage = (files: FileList | File[]) => {
-    if (files && files.length > 0) {
-      const fileArray: File[] = [];
-      for (let i = 0; i < files.length; i++) {
-        fileArray.push(files[i]);
-      }
-      const nameArr = fileArray[0].name.split('.');
-      nameArr.pop();
-      const imageName = nameArr.join('.');
-      const reader = new FileReader();
-      reader.onload = (e: ProgressEvent<FileReader>) => {
-        if (e.target?.result) {
-          /* setUploadedFiles((prevFiles) => ({
-            files: [...prevFiles.files, ...fileArray],
-            previewImage: e.target?.result as string,
-          })); */
-          onFileChange(e.target?.result as string, imageName);
+  const handleSelectedImage = useCallback(
+    (files: FileList | File[] | null | undefined) => {
+      if (files && files.length > 0) {
+        const file = files[0];
+        if (!file.type.startsWith('image/')) {
+          toast.error('Unsupported file', {
+            description: 'Please choose an image file (PNG, JPG, WebP...).',
+          });
+          return;
         }
-      };
-      reader.readAsDataURL(fileArray[0]);
-    }
-  };
+        const nameArr = file.name.split('.');
+        nameArr.pop();
+        const imageName = nameArr.join('.');
+        const reader = new FileReader();
+        reader.onload = (e: ProgressEvent<FileReader>) => {
+          if (e.target?.result) {
+            onFileChange(e.target?.result as string, imageName);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    },
+    [onFileChange]
+  );
 
-  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setDragging(false);
-    handleSelectedImage(event.dataTransfer?.files);
-  };
-
-  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    event.dataTransfer.dropEffect = 'copy';
-    if (!dragging) setDragging(true);
-  };
-
-  const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (dragging) setDragging(false);
-  };
+  // accept drops anywhere on the page, not just inside the card
+  useEffect(() => {
+    let depth = 0;
+    const onDragEnter = (event: DragEvent) => {
+      if (!hasFiles(event)) return;
+      event.preventDefault();
+      depth += 1;
+      setDragging(true);
+    };
+    const onDragOver = (event: DragEvent) => {
+      if (!hasFiles(event)) return;
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+    };
+    const onDragLeave = (event: DragEvent) => {
+      if (!hasFiles(event)) return;
+      depth = Math.max(0, depth - 1);
+      if (depth === 0) setDragging(false);
+    };
+    const onDrop = (event: DragEvent) => {
+      if (!hasFiles(event)) return;
+      event.preventDefault();
+      depth = 0;
+      setDragging(false);
+      handleSelectedImage(event.dataTransfer?.files);
+    };
+    window.addEventListener('dragenter', onDragEnter);
+    window.addEventListener('dragover', onDragOver);
+    window.addEventListener('dragleave', onDragLeave);
+    window.addEventListener('drop', onDrop);
+    return () => {
+      window.removeEventListener('dragenter', onDragEnter);
+      window.removeEventListener('dragover', onDragOver);
+      window.removeEventListener('dragleave', onDragLeave);
+      window.removeEventListener('drop', onDrop);
+    };
+  }, [handleSelectedImage]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target?.files) {
-      handleSelectedImage(event.target.files);
+    handleSelectedImage(event.target?.files);
+    // allow picking the same file again
+    event.target.value = '';
+  };
+
+  const handleExample = async (uri: string) => {
+    try {
+      const imgBlob = await fetch(uri).then((r) => r.blob());
+      handleSelectedImage([
+        new File([imgBlob], uri.replace('/example/', ''), {
+          type: 'image/jpeg',
+        }),
+      ]);
+    } catch {
+      toast.error('Could not load the example image');
     }
   };
-  const handleExample = async (uri: string) => {
-    const imgBlob = await fetch(uri).then((r) => r.blob());
-    handleSelectedImage([
-      new File([imgBlob], uri.replace('/example/', ''), { type: 'image/jpg' }),
-    ]);
-  };
-  return (
-    <div
-      ref={dropZoneRef}
-      className='drop-zone fixed w-screen h-screen'
-      style={{ backgroundColor: dragging ? 'rgba(125, 211, 252, 0.6)' : '' }}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
-      <div
-        className='left-1/2 top-1/3 absolute text-4xl'
-        style={{
-          transform: 'translateX(-50%)',
-        }}
-      >
-        <div>drop an image</div>
-        <input ref={inputRef} type='file' onChange={handleFileChange} hidden />
-        <Button
-          className='mt-6'
-          size='lg'
-          onClick={() => inputRef.current && inputRef.current.click()}
-        >
-          Upload Image
-        </Button>
-        <div className='pt-20 text-base text-gray-600'>
-          No image? Try one of these
-          <ul className='pt-2 flex justify-center'>
-            {exampleImages.map((item) => (
-              <li
-                className='mr-1 rounded overflow-hidden cursor-pointer'
-                key={item}
-                onClick={() => handleExample(item)}
-              >
-                <img className='w-16 h-16' src={item} />
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
 
-      {/* DragOver UI */}
-      {dragging && (
-        <div className='opacity-60'>
-          <img className='left-8 top-8 absolute' src={corner} />
-          <img className='right-8 top-8 absolute rotate-90' src={corner} />
-          <img
-            className='left-8 bottom-8 absolute'
-            src={corner}
-            style={{ transform: 'rotate(270deg)' }}
-          />
-          <img className='right-8 bottom-8 absolute rotate-180' src={corner} />
-          <h1
-            className='absolute text-3xl text-white font-bold left-1/2 top-1/2 translate-x-1/2 translate-y-1/2'
-            style={{
-              transform: 'translateX(-50%)',
-            }}
+  return (
+    <>
+      <Card className='mx-auto w-full max-w-xl'>
+        <CardHeader className='text-center'>
+          <CardTitle className='text-2xl'>Remove image backgrounds</CardTitle>
+          <CardDescription>
+            Free and private. Your image never leaves your browser.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className='flex flex-col gap-6'>
+          <div
+            className={cn(
+              'flex flex-col items-center gap-4 rounded-lg border-2 border-dashed px-6 py-12 text-center transition-colors',
+              dragging && 'border-primary bg-accent'
+            )}
           >
-            Drop image anywhere
-          </h1>
+            <div className='rounded-full bg-muted p-3 text-muted-foreground'>
+              <ImageUp className='size-6' />
+            </div>
+            <div className='text-sm text-muted-foreground'>
+              Drag and drop an image here, or
+            </div>
+            <input
+              ref={inputRef}
+              type='file'
+              accept='image/*'
+              onChange={handleFileChange}
+              hidden
+            />
+            <Button size='lg' onClick={() => inputRef.current?.click()}>
+              Upload Image
+            </Button>
+          </div>
+
+          <div className='flex flex-col items-center gap-3'>
+            <span className='text-sm text-muted-foreground'>
+              No image? Try one of these
+            </span>
+            <ul className='flex gap-2'>
+              {exampleImages.map((item) => (
+                <li key={item.src}>
+                  <button
+                    type='button'
+                    aria-label={`Use example image: ${item.label}`}
+                    className='block overflow-hidden rounded-lg ring-1 ring-border transition hover:ring-2 hover:ring-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none'
+                    onClick={() => handleExample(item.src)}
+                  >
+                    <img
+                      className='size-16 object-cover'
+                      src={item.src}
+                      alt=''
+                    />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* drag over overlay */}
+      {dragging && (
+        <div className='pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-6 backdrop-blur-sm'>
+          <div className='flex size-full items-center justify-center rounded-2xl border-2 border-dashed border-primary'>
+            <h2 className='text-2xl font-semibold'>Drop image anywhere</h2>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

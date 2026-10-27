@@ -1,12 +1,22 @@
 :root {
-  --checkerboard-black-color: #f8f9f9;
-  --checkerboard-white-color: transparent;
+  --checkerboard-color: #cccccc;
 }
 
-.App {
-  text-align: center;
+.dark {
+  --checkerboard-color: #3a3a3a;
 }
 
-.selected-color {
-  border: 3px solid #195df3 !important;
+.checkerboard {
+  background-color: var(--background);
+  background-size: 20px 20px;
+  background-position:
+    0 0,
+    0 10px,
+    10px -10px,
+    -10px 0;
+  background-image:
+    linear-gradient(45deg, var(--checkerboard-color) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--checkerboard-color) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--checkerboard-color) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--checkerboard-color) 75%);
 }
