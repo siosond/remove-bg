@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Ban } from 'lucide-react';
 import { useThrottleFn } from '@reactuses/core';
 import { cn } from '@/lib/utils';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 interface BackgroundComponentProps {
@@ -37,6 +36,7 @@ const swatchClass =
 const Background: React.FC<BackgroundComponentProps> = ({ onChangeBg }) => {
   const [selected, setSelected] = useState('transparent');
   const [customColor, setCustomColor] = useState('#3f51b5');
+  const colorInputRef = useRef<HTMLInputElement>(null);
 
   const { run: applyCustomColor } = useThrottleFn((value: string) => {
     onChangeBg(value);
@@ -49,7 +49,17 @@ const Background: React.FC<BackgroundComponentProps> = ({ onChangeBg }) => {
     onChangeBg(value === CUSTOM ? customColor : value);
   };
 
-  const handleCustomChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const openColorPicker = () => {
+    const input = colorInputRef.current;
+    if (!input) return;
+    if (typeof input.showPicker === 'function') {
+      input.showPicker();
+    } else {
+      input.click();
+    }
+  };
+
+  const handleCustomChange =(event: React.ChangeEvent<HTMLInputElement>) => {
     setCustomColor(event.target.value);
     setSelected(CUSTOM);
     applyCustomColor(event.target.value);
@@ -71,32 +81,31 @@ const Background: React.FC<BackgroundComponentProps> = ({ onChangeBg }) => {
         <Ban className='size-4 text-muted-foreground' />
       </ToggleGroupItem>
 
-      <Popover>
-        <PopoverTrigger asChild>
-          <ToggleGroupItem
-            value={CUSTOM}
-            aria-label='Custom color'
-            className={swatchClass}
-            style={{
-              background:
-                selected === CUSTOM
-                  ? customColor
-                  : 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)',
-            }}
-          />
-        </PopoverTrigger>
-        <PopoverContent className='w-48'>
-          <label className='flex flex-col gap-2 text-sm'>
-            Custom color
-            <input
-              type='color'
-              value={customColor}
-              onChange={handleCustomChange}
-              className='h-20 w-full cursor-pointer rounded-md border bg-transparent p-1'
-            />
-          </label>
-        </PopoverContent>
-      </Popover>
+      <span className='relative block'>
+        <ToggleGroupItem
+          value={CUSTOM}
+          aria-label='Custom color'
+          className={swatchClass}
+          style={{
+            background:
+              selected === CUSTOM
+                ? customColor
+                : 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)',
+          }}
+          // onClick (not onValueChange) so clicking the active swatch reopens it
+          onClick={openColorPicker}
+        />
+        {/* hidden native input laid over the swatch so the dialog anchors to it */}
+        <input
+          ref={colorInputRef}
+          type='color'
+          value={customColor}
+          onChange={handleCustomChange}
+          tabIndex={-1}
+          aria-hidden
+          className='pointer-events-none absolute inset-0 size-full opacity-0'
+        />
+      </span>
 
       {colorArr.map((item) => (
         <ToggleGroupItem
